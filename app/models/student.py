@@ -15,6 +15,11 @@ class Student(Base):
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    # Hook for a future parental-consent flow (deferred — no flow/endpoints yet).
+    # Intended values: not_required | pending | granted | revoked.
+    consent_status: Mapped[str] = mapped_column(
+        String, nullable=False, default="not_required", server_default="not_required"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     # passive_deletes=True on all five: let the DB apply each FK's own ON DELETE
