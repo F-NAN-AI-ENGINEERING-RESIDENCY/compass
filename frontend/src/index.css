@@ -95,3 +95,38 @@ h3 {
   border-radius: var(--radius-card);
   padding: 1.5rem;
 }
+
+/* Form field: a label stacked above its input, used on both auth pages. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+.field input {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px; /* softer than a full pill — pills are for buttons/tags, not text inputs */
+  border: 1.5px solid var(--color-cream-dim);
+  background: white;
+  color: var(--color-ink);
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--color-forest);
+}
+
+/* Error message shown under a form when a request fails (bad credentials,
+   duplicate account, etc). Clay from the confidence ramp instead of red,
+   consistent with the spec's "red is never used" rule. */
+.error-text {
+  color: var(--color-clay);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
