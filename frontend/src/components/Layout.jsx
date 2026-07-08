@@ -27,9 +27,15 @@ export function Layout() {
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           {user ? (
             // Signed in: show where you can go, who's signed in, and a way to sign out.
+            // "Dashboard" routes home for whichever role is actually signed in —
+            // a student following this link should land on /student, not a
+            // teacher-only page that immediately 403s.
             <>
-              <Link to="/dashboard" style={{ color: 'var(--color-text-on-dark)' }}>
-                Dashboard
+              <Link
+                to={user.role === 'teacher' ? '/dashboard' : '/student'}
+                style={{ color: 'var(--color-text-on-dark)' }}
+              >
+                {user.role === 'teacher' ? 'Dashboard' : 'My classes'}
               </Link>
               <AvatarBadge name={user.name} />
               <button onClick={logout} className="btn-pill btn-pill--outline" style={outlineOnDark}>
@@ -37,12 +43,14 @@ export function Layout() {
               </button>
             </>
           ) : (
-            // Signed out: show the entry points into the app.
+            // Signed out: show the entry points into the app. Sign-up goes
+            // through role-select first (screen 02) rather than straight to
+            // the form, since the form needs to know which role to register.
             <>
               <Link to="/login" style={{ color: 'var(--color-text-on-dark)' }}>
                 Log in
               </Link>
-              <Link to="/signup" className="btn-pill btn-pill--outline" style={outlineOnDark}>
+              <Link to="/role-select" className="btn-pill btn-pill--outline" style={outlineOnDark}>
                 Sign up
               </Link>
             </>
