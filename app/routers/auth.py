@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.security import create_access_token
+from app.auth.security import create_session
 from app.dependencies import CurrentUser, get_current_user, get_db
 from app.schemas.auth import (
     LoginRequest,
@@ -9,6 +9,7 @@ from app.schemas.auth import (
     ProfileResponse,
     ProfileUpdateRequest,
     RegisterRequest,
+    RoleEnum,
     TokenResponse,
 )
 from app.services import auth_service
@@ -16,11 +17,10 @@ from app.services import auth_service
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-def _to_profile_response(current_user: CurrentUser) -> ProfileResponse:
-    principal = current_user.principal
+def _to_profile_response(principal, role: RoleEnum) -> ProfileResponse:
     return ProfileResponse(
         id=auth_service.user_id_of(principal),
-        role=current_user.role,
+        role=role,
         username=principal.username,
         name=principal.name,
         email=principal.email,
@@ -35,7 +35,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> Profile
         user = auth_service.register_user(db, payload)
     except auth_service.DuplicateAccountError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return _to_profile_response(CurrentUser(principal=user, role=payload.role))
+    return _to_profile_response(user, payload.role)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -45,21 +45,23 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     except auth_service.InvalidCredentialsError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
     user_id = auth_service.user_id_of(user)
-    token = create_access_token(user_id=user_id, role=payload.role.value)
-    return TokenResponse(access_token=token, role=payload.role, user_id=user_id)
+    session = create_session(db, user_id=user_id, role=payload.role.value)
+    return TokenResponse(access_token=session.token, role=payload.role, user_id=user_id)
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(current_user: CurrentUser = Depends(get_current_user)) -> MessageResponse:
-    # Stateless JWT: nothing to revoke server-side: the access token remains valid
-    # until it expires (see ACCESS_TOKEN_EXPIRE_MINUTES). Good enough for this MVP;
-    # a revocation store is the natural upgrade if early logout must be enforced.
+def logout(current_user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> MessageResponse:
+    # Deletes exactly the session tied to this token — not every session this
+    # user has (e.g. on another device) — so the token used here dies
+    # immediately on next use instead of surviving until its natural expiry.
+    db.delete(current_user.session)
+    db.commit()
     return MessageResponse(message="Logged out")
 
 
 @router.get("/me", response_model=ProfileResponse)
 def get_me(current_user: CurrentUser = Depends(get_current_user)) -> ProfileResponse:
-    return _to_profile_response(current_user)
+    return _to_profile_response(current_user.principal, current_user.role)
 
 
 @router.patch("/me", response_model=ProfileResponse)
@@ -72,4 +74,4 @@ def update_me(
         updated = auth_service.update_profile(db, current_user.principal, payload)
     except auth_service.DuplicateAccountError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return _to_profile_response(CurrentUser(principal=updated, role=current_user.role))
+    return _to_profile_response(updated, current_user.role)
