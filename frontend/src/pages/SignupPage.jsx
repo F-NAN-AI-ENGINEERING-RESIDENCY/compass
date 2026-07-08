@@ -34,7 +34,7 @@ export function SignupPage() {
       // their home page instead of bouncing to a second login screen.
       const session = await loginRequest({ role, username, password })
       authLogin(session.accessToken, { name, role })
-      navigate(role === 'teacher' ? '/dashboard' : '/student')
+      navigate(role === 'teacher' ? '/dashboard' : '/student/dashboard')
     } catch (err) {
       setError(err.message) // e.g. "Username already registered" (409 from the backend)
     } finally {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom' // reads the :lessonId part of the current URL
+import { useParams, Link } from 'react-router-dom' // reads the :lessonId part of the current URL; Link to the present view
 import { getLesson } from '../api/lessons.js'
 import { getDashboard, resolveSignal } from '../api/signals.js'
 
@@ -94,7 +94,12 @@ export function TeacherLessonDashboardPage() {
 
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Live dashboard</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>Live dashboard</h1>
+        <Link to={`/lessons/${lessonId}/present`} className="btn-pill btn-pill--outline" style={{ textDecoration: 'none' }}>
+          Present →
+        </Link>
+      </div>
       <p style={{ color: 'var(--color-ink-muted)', marginBottom: '1.5rem' }}>
         {lesson ? `Lesson #${lesson.lessonId} · ${lesson.status}` : `Lesson #${lessonId}`}
       </p>

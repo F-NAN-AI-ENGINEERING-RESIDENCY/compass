@@ -32,7 +32,7 @@ export function LoginPage() {
       // bar's avatar initials and route guarding until a fuller profile is
       // fetched elsewhere.
       authLogin(session.accessToken, { name: username, role: session.role })
-      navigate(session.role === 'teacher' ? '/dashboard' : '/student')
+      navigate(session.role === 'teacher' ? '/dashboard' : '/student/dashboard')
     } catch (err) {
       setError(err.message) // e.g. "Invalid credentials" from the backend
     } finally {

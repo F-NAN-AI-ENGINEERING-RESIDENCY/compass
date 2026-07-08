@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext.jsx'
 // Where a signed-in user belongs if they land somewhere their role doesn't
 // own (e.g. a student hitting a teacher-only route, or vice versa).
 function homeRouteFor(role) {
-  return role === 'teacher' ? '/dashboard' : '/student'
+  return role === 'teacher' ? '/dashboard' : '/student/dashboard'
 }
 
 // Wrap any <Route> that should only be reachable while logged in. Usage in
