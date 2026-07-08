@@ -4,6 +4,8 @@ Current flow only (16 screens) · sign in → onboarding → student app → liv
 
 **Update:** following stakeholder feedback from Alexa (education professional, sat in on the proposal), a "Proposed Additions" section has been added at the end of this doc covering 4 features not yet present in the wireframe. Screens that would be touched by those additions are cross-referenced inline below.
 
+**⚠️ Needs team reconciliation (found 2026-07-08):** this doc's headline pitch — "Teachers see where the whole room is — never who" (screen 01), and screen 13's "no column ties a named student to 'I'm lost'" — conflicts with a backend decision already implemented and merged to `main` on 2026-07-07. `ConfusionSignal.student_id`'s column comment states plainly: "the teacher always sees who sent a signal (anonymity is from classmates only ... never from the teacher/DB)," and the signals/dashboard API returns `studentName` on every signal. The Sprint 2 teacher live dashboard was built matching the real API (names visible to teachers), not this doc. Someone should confirm which is correct — a considered backend decision that this doc hasn't caught up to, or copy that needs updating — since right now the login screen's pitch tags and this spec both promise something the shipped backend doesn't do.
+
 **Design system (from the board's own footer notes):**
 - Typefaces: Bricolage Grotesque (display/headlines), Albert Sans (UI/body), Spline Sans Mono (data/mono contexts)
 - Confidence color ramp: forest → olive → ochre → clay — clay is the top of the ramp; red is deliberately never used
