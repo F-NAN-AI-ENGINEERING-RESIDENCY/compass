@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -15,6 +16,11 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
+
+    # Video (Daily.co). Unset in local dev/tests on purpose: app.services.video
+    # falls back to FakeVideoService whenever this is blank, so no one needs a
+    # real Daily account to run the app or the test suite.
+    daily_api_key: Optional[str] = None
 
     # App
     environment: str = "development"

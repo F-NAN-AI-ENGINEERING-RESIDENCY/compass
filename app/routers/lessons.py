@@ -1,0 +1,63 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
+from app.schemas.lessons import LessonResponse, LessonStatusUpdateRequest, VideoTokenResponse
+from app.services import auth_service, lesson_service
+from app.services.video import VideoService, get_video_service
+
+router = APIRouter(prefix="/api/lessons", tags=["lessons"])
+
+
+def _to_lesson_response(lesson) -> LessonResponse:
+    return LessonResponse(
+        lesson_id=lesson.lesson_id,
+        class_id=lesson.class_id,
+        status=lesson.status,
+        started_at=lesson.started_at,
+        ended_at=lesson.ended_at,
+    )
+
+
+@router.patch("/{lesson_id}", response_model=LessonResponse)
+def update_lesson_status(
+    lesson_id: int,
+    payload: LessonStatusUpdateRequest,
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+    video_service: VideoService = Depends(get_video_service),
+) -> LessonResponse:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    try:
+        lesson = lesson_service.get_lesson_or_404(db, lesson_id)
+        lesson_service.assert_teacher_owns_lesson(lesson, teacher_id)
+        lesson = lesson_service.transition_lesson_status(db, lesson, payload.status.value, video_service)
+    except lesson_service.LessonNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except lesson_service.NotLessonOwnerError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except lesson_service.InvalidLessonTransitionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return _to_lesson_response(lesson)
+
+
+@router.get("/{lesson_id}/video-token", response_model=VideoTokenResponse)
+def get_video_token(
+    lesson_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    video_service: VideoService = Depends(get_video_service),
+) -> VideoTokenResponse:
+    user_id = auth_service.user_id_of(current_user.principal)
+    try:
+        lesson = lesson_service.get_lesson_or_404(db, lesson_id)
+        token = lesson_service.get_video_token_for_user(
+            db, lesson, user_id, current_user.role.value, video_service
+        )
+    except lesson_service.LessonNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except (lesson_service.NotLessonOwnerError, lesson_service.NotEnrolledError) as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except lesson_service.LessonNotLiveError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return VideoTokenResponse(room_id=lesson.video_room_id, provider=lesson.video_provider, token=token)

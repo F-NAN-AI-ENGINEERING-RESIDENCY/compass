@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
-from app.routers import auth
+from app.routers import auth, lessons
 
 
 @asynccontextmanager
@@ -35,12 +35,12 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(auth.router)
+app.include_router(lessons.router)
 
 # Remaining routers are registered here in a later step, e.g.:
-# from app.routers import signals, dashboard, lessons
+# from app.routers import signals, dashboard
 # app.include_router(signals.router)
 # app.include_router(dashboard.router)
-# app.include_router(lessons.router)
 
 # WebSocket route is registered here in a later step, e.g.:
 # from app.websockets import dashboard_ws
