@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createClass, getClass } from '../api/classes.js'
 import { AvatarBadge } from '../components/AvatarBadge.jsx'
 
@@ -27,6 +28,13 @@ export function TeacherDashboardPage() {
   const [className, setClassName] = useState('') // controlled input for the "create class" form
   const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
+  const [lessonIdInput, setLessonIdInput] = useState('') // controlled input for the "jump to lesson" shortcut below
+  const navigate = useNavigate()
+
+  function handleJumpToLesson(event) {
+    event.preventDefault()
+    if (lessonIdInput.trim()) navigate(`/lessons/${lessonIdInput.trim()}`)
+  }
 
   async function handleCreateClass(event) {
     event.preventDefault()
@@ -93,6 +101,27 @@ export function TeacherDashboardPage() {
       ) : (
         classes.map((classItem) => <ClassCard key={classItem.classId} classItem={classItem} />)
       )}
+
+      {/* There's no POST /api/lessons or "list my lessons" endpoint yet, so
+          there's no in-app way to create or browse to a lesson. This is a
+          stand-in shortcut until that exists — enter a known lesson id to
+          jump straight to its live dashboard (Sprint 2). */}
+      <form
+        onSubmit={handleJumpToLesson}
+        style={{ display: 'flex', gap: '0.75rem', marginTop: '2.5rem', alignItems: 'center' }}
+      >
+        <input
+          type="number"
+          className="text-input"
+          placeholder="Lesson ID"
+          value={lessonIdInput}
+          onChange={(event) => setLessonIdInput(event.target.value)}
+          style={{ width: '8rem' }}
+        />
+        <button type="submit" className="btn-pill btn-pill--outline">
+          Go to lesson dashboard →
+        </button>
+      </form>
     </div>
   )
 }
