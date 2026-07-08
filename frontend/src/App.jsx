@@ -17,6 +17,7 @@ import { BadgeBuilderPage } from './pages/BadgeBuilderPage.jsx'
 import { ScoutPage } from './pages/ScoutPage.jsx'
 import { MaterialsPage } from './pages/MaterialsPage.jsx'
 import { RecordingsPage } from './pages/RecordingsPage.jsx'
+import { TeacherSessionsHubPage } from './pages/TeacherSessionsHubPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -57,6 +58,7 @@ export default function App() {
                 bounced to /student instead of seeing a 403-riddled page. */}
             <Route element={<ProtectedRoute role="teacher" />}>
               <Route path="/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/sessions" element={<TeacherSessionsHubPage />} />
               <Route path="/lessons/:lessonId" element={<TeacherLessonDashboardPage />} />
               <Route path="/settings" element={<TeacherSettingsPage />} />
               <Route path="/materials" element={<MaterialsPage />} />
