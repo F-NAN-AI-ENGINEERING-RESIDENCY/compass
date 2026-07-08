@@ -15,6 +15,8 @@ import { StudentSettingsPage } from './pages/StudentSettingsPage.jsx'
 import { TeacherSettingsPage } from './pages/TeacherSettingsPage.jsx'
 import { BadgeBuilderPage } from './pages/BadgeBuilderPage.jsx'
 import { ScoutPage } from './pages/ScoutPage.jsx'
+import { MaterialsPage } from './pages/MaterialsPage.jsx'
+import { RecordingsPage } from './pages/RecordingsPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -57,6 +59,8 @@ export default function App() {
               <Route path="/dashboard" element={<TeacherDashboardPage />} />
               <Route path="/lessons/:lessonId" element={<TeacherLessonDashboardPage />} />
               <Route path="/settings" element={<TeacherSettingsPage />} />
+              <Route path="/materials" element={<MaterialsPage />} />
+              <Route path="/recordings" element={<RecordingsPage />} />
             </Route>
 
             {/* Student-only route, same idea in reverse. */}
