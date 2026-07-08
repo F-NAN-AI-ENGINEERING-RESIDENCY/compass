@@ -13,9 +13,7 @@ class Settings(BaseSettings):
     database_url: str
 
     # Auth
-    secret_key: str
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
+    session_expire_hours: int = 24
 
     # Video (Daily.co). Unset in local dev/tests on purpose: app.services.video
     # falls back to FakeVideoService whenever this is blank, so no one needs a
