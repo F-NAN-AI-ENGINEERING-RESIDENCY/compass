@@ -37,6 +37,17 @@ export function Layout() {
               >
                 {user.role === 'teacher' ? 'Dashboard' : 'My classes'}
               </Link>
+              {user.role === 'student' && (
+                <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
+                  Wellbeing
+                </Link>
+              )}
+              <Link
+                to={user.role === 'teacher' ? '/settings' : '/student/settings'}
+                style={{ color: 'var(--color-text-on-dark)' }}
+              >
+                Settings
+              </Link>
               <AvatarBadge name={user.name} />
               <button onClick={logout} className="btn-pill btn-pill--outline" style={outlineOnDark}>
                 Log out

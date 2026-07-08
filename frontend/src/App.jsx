@@ -10,6 +10,9 @@ import { TeacherLessonDashboardPage } from './pages/TeacherLessonDashboardPage.j
 import { StudentHomePage } from './pages/StudentHomePage.jsx'
 import { StudentPreJoinPage } from './pages/StudentPreJoinPage.jsx'
 import { StudentLessonPage } from './pages/StudentLessonPage.jsx'
+import { WellbeingPage } from './pages/WellbeingPage.jsx'
+import { StudentSettingsPage } from './pages/StudentSettingsPage.jsx'
+import { TeacherSettingsPage } from './pages/TeacherSettingsPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -51,11 +54,14 @@ export default function App() {
             <Route element={<ProtectedRoute role="teacher" />}>
               <Route path="/dashboard" element={<TeacherDashboardPage />} />
               <Route path="/lessons/:lessonId" element={<TeacherLessonDashboardPage />} />
+              <Route path="/settings" element={<TeacherSettingsPage />} />
             </Route>
 
             {/* Student-only route, same idea in reverse. */}
             <Route element={<ProtectedRoute role="student" />}>
               <Route path="/student" element={<StudentHomePage />} />
+              <Route path="/wellbeing" element={<WellbeingPage />} />
+              <Route path="/student/settings" element={<StudentSettingsPage />} />
             </Route>
           </Route>
         </Routes>

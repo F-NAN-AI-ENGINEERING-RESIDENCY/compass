@@ -20,3 +20,20 @@ export function login({ role, username, password }) {
     body: JSON.stringify({ role, username, password }),
   })
 }
+
+// Fetches the full profile for whoever the token belongs to. Real and
+// merged on main — used by the Settings pages to show current name/email
+// (AuthContext's own copy is often just a placeholder built at login time).
+export function getMe() {
+  return apiRequest('/api/auth/me')
+}
+
+// Updates name and/or email. Real and merged on main
+// (PATCH /api/auth/me, app/schemas/auth.py's ProfileUpdateRequest) — both
+// fields are optional, so partial updates work.
+export function updateProfile({ name, email }) {
+  return apiRequest('/api/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify({ name, email }),
+  })
+}
