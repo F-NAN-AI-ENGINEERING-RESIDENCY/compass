@@ -18,6 +18,8 @@ import { ScoutPage } from './pages/ScoutPage.jsx'
 import { MaterialsPage } from './pages/MaterialsPage.jsx'
 import { RecordingsPage } from './pages/RecordingsPage.jsx'
 import { TeacherSessionsHubPage } from './pages/TeacherSessionsHubPage.jsx'
+import { StudentDashboardPage } from './pages/StudentDashboardPage.jsx'
+import { TeacherInCallPage } from './pages/TeacherInCallPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -48,6 +50,9 @@ export default function App() {
             <Route path="/student/lessons/:lessonId/join" element={<StudentPreJoinPage />} />
             <Route path="/student/lessons/:lessonId" element={<StudentLessonPage />} />
           </Route>
+          <Route element={<ProtectedRoute role="teacher" />}>
+            <Route path="/lessons/:lessonId/present" element={<TeacherInCallPage />} />
+          </Route>
 
           {/* Everything else keeps the persistent top nav: Layout renders it
               once, then <Outlet/> swaps in whichever child route matches. */}
@@ -68,6 +73,7 @@ export default function App() {
             {/* Student-only route, same idea in reverse. */}
             <Route element={<ProtectedRoute role="student" />}>
               <Route path="/student" element={<StudentHomePage />} />
+              <Route path="/student/dashboard" element={<StudentDashboardPage />} />
               <Route path="/wellbeing" element={<WellbeingPage />} />
               <Route path="/student/settings" element={<StudentSettingsPage />} />
               <Route path="/badge" element={<BadgeBuilderPage />} />

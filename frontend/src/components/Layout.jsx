@@ -28,17 +28,20 @@ export function Layout() {
           {user ? (
             // Signed in: show where you can go, who's signed in, and a way to sign out.
             // "Dashboard" routes home for whichever role is actually signed in —
-            // a student following this link should land on /student, not a
-            // teacher-only page that immediately 403s.
+            // a student following this link should land on their own
+            // dashboard, not a teacher-only page that immediately 403s.
             <>
               <Link
-                to={user.role === 'teacher' ? '/dashboard' : '/student'}
+                to={user.role === 'teacher' ? '/dashboard' : '/student/dashboard'}
                 style={{ color: 'var(--color-text-on-dark)' }}
               >
-                {user.role === 'teacher' ? 'Dashboard' : 'My classes'}
+                Dashboard
               </Link>
               {user.role === 'student' && (
                 <>
+                  <Link to="/student" style={{ color: 'var(--color-text-on-dark)' }}>
+                    My classes
+                  </Link>
                   <Link to="/scout" style={{ color: 'var(--color-text-on-dark)' }}>
                     Scout
                   </Link>
