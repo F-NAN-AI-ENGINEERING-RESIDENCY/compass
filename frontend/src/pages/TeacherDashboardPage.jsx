@@ -7,10 +7,21 @@ import { AvatarBadge } from '../components/AvatarBadge.jsx'
 // those (the "U" and "D" of the spec's CRUD note) aren't part of this sprint.
 //
 // There's no GET /api/classes endpoint to list a teacher's classes (only
-// POST /api/classes and GET /api/classes/:id exist in the sprint plan), so
-// this page tracks classes created during the current session in local state
-// rather than fetching a persisted list — reloading the page loses that list
-// until a real "list my classes" endpoint exists.
+// POST /api/classes and GET /api/classes/:id exist, per felix/roster-endpoints —
+// see below), so this page tracks classes created during the current session
+// in local state rather than fetching a persisted list — reloading the page
+// loses that list until a real "list my classes" endpoint exists.
+//
+// Roster note (checked against felix/roster-endpoints as of this writing,
+// not yet merged to main): GET /api/classes/:id exists and returns the class
+// fields (classId, teacherId, name, joinCode, alertThreshold, createdAt), but
+// it does NOT include an enrollments/roster list — that field isn't in
+// ClassResponse. The only enrollment endpoint is POST /api/enrollments, which
+// is a student joining by code, not a teacher-facing roster read. So once
+// that branch merges, loadRoster() below will get a 200 instead of a 404, but
+// `roster` will still always resolve to [] — the UI will read as "no
+// students yet" even after students have actually joined. Flagged to the
+// team; not fixable from the frontend alone.
 export function TeacherDashboardPage() {
   const [classes, setClasses] = useState([]) // classes created this session, each augmented with its roster once fetched
   const [className, setClassName] = useState('') // controlled input for the "create class" form
@@ -36,8 +47,10 @@ export function TeacherDashboardPage() {
   async function loadRoster(classId) {
     try {
       const detail = await getClass(classId) // GET /api/classes/:id
-      // Roster shape isn't finalized yet (Felix's enrollments work isn't
-      // merged), so default to an empty list rather than assume a field name.
+      // Confirmed against felix/roster-endpoints: ClassResponse never
+      // includes enrollments, so this is always [] until a real roster
+      // endpoint exists (see the file-level note above) — not a defensive
+      // guess, a known current gap.
       const roster = detail.enrollments ?? []
       setClasses((current) =>
         current.map((c) => (c.classId === classId ? { ...c, roster, rosterError: null } : c)),
@@ -101,7 +114,9 @@ function ClassCard({ classItem }) {
         Roster
       </h3>
       {classItem.rosterError ? (
-        // Expected for now — GET /api/classes/:id doesn't exist on the backend yet.
+        // Only fires on a genuine error now (network issue, 403, 404) — once
+        // felix/roster-endpoints merges, GET /api/classes/:id itself succeeds;
+        // see the file-level note above for why the roster still won't populate.
         <p style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)' }}>
           Roster unavailable ({classItem.rosterError})
         </p>
