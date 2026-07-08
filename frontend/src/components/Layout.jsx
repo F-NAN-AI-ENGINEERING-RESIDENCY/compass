@@ -38,9 +38,14 @@ export function Layout() {
                 {user.role === 'teacher' ? 'Dashboard' : 'My classes'}
               </Link>
               {user.role === 'student' && (
-                <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
-                  Wellbeing
-                </Link>
+                <>
+                  <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Wellbeing
+                  </Link>
+                  <Link to="/badge" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Badge
+                  </Link>
+                </>
               )}
               <Link
                 to={user.role === 'teacher' ? '/settings' : '/student/settings'}
