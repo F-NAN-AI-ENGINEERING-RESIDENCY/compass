@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
-from app.schemas.classes import ClassCreateRequest, ClassResponse
+from app.schemas.classes import ClassCreateRequest, ClassResponse, EnrolledStudent
 from app.services import auth_service, class_service
 
 router = APIRouter(prefix="/api/classes", tags=["classes"])
 
 
-def _to_class_response(class_) -> ClassResponse:
+def _to_class_response(class_, enrollments=None) -> ClassResponse:
     return ClassResponse(
         class_id=class_.class_id,
         teacher_id=class_.teacher_id,
@@ -16,6 +16,18 @@ def _to_class_response(class_) -> ClassResponse:
         join_code=class_.join_code,
         alert_threshold=class_.alert_threshold,
         created_at=class_.created_at,
+        enrollments=(
+            [
+                EnrolledStudent(
+                    student_id=enrollment.student_id,
+                    student_name=enrollment.student.name,
+                    enrolled_at=enrollment.enrolled_at,
+                )
+                for enrollment in enrollments
+            ]
+            if enrollments is not None
+            else None
+        ),
     )
 
 
@@ -44,4 +56,9 @@ def get_class(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except (class_service.NotClassOwnerError, class_service.NotEnrolledInClassError) as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
-    return _to_class_response(class_)
+
+    # assert_user_can_view_class already confirmed ownership for the teacher
+    # branch, so role alone distinguishes "owning teacher" from "enrolled student" here.
+    is_owning_teacher = current_user.role.value == "teacher"
+    enrollments = class_service.get_class_roster(db, class_id) if is_owning_teacher else None
+    return _to_class_response(class_, enrollments)

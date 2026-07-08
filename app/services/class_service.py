@@ -1,7 +1,8 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.class_ import Class, generate_join_code
 from app.models.enrollment import Enrollment
+from app.models.student import Student
 
 
 class ClassNotFoundError(Exception):
@@ -44,6 +45,17 @@ def assert_student_enrolled_in_class(db: Session, class_: Class, student_id: int
     )
     if not enrolled:
         raise NotEnrolledInClassError("You are not enrolled in this class")
+
+
+def get_class_roster(db: Session, class_id: int) -> list[Enrollment]:
+    return (
+        db.query(Enrollment)
+        .join(Student, Student.student_id == Enrollment.student_id)
+        .options(joinedload(Enrollment.student))
+        .filter(Enrollment.class_id == class_id)
+        .order_by(Enrollment.enrolled_at)
+        .all()
+    )
 
 
 def assert_user_can_view_class(db: Session, class_: Class, user_id: int, role: str) -> None:
