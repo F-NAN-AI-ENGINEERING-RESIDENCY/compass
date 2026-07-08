@@ -1,20 +1,26 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { loginTeacher, registerTeacher } from '../api/auth.js'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { login as loginRequest, register } from '../api/auth.js'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { AuthSplitLayout } from '../components/AuthSplitLayout.jsx'
 
-// Teacher-only signup form, built against the real RegisterRequest schema
-// (app/schemas/auth.py: role, username, name, email, password). Reuses the
-// same split-panel shell as TeacherLoginPage.
-export function TeacherSignupPage() {
+// Signup form for the role picked on RoleSelectPage (screen 02), carried
+// here as ?role=student|teacher. RegisterRequest's shape is identical for
+// both roles (role/username/name/email/password), so one form covers both —
+// only the headline copy and which role gets submitted change.
+export function SignupPage() {
+  const [searchParams] = useSearchParams()
+  // Defaults to teacher if someone lands here directly without going through
+  // role-select (e.g. a bookmarked link) — arbitrary, just needs to be one or the other.
+  const role = searchParams.get('role') === 'student' ? 'student' : 'teacher'
+
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login } = useAuth()
+  const { login: authLogin } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(event) {
@@ -22,13 +28,13 @@ export function TeacherSignupPage() {
     setError(null)
     setIsSubmitting(true)
     try {
-      await registerTeacher({ username, name, email, password }) // POST /api/auth/register
+      await register({ role, username, name, email, password }) // POST /api/auth/register
       // Registration doesn't return a session token by itself, so immediately
-      // log the new account in too — one submit takes the teacher straight
-      // into the dashboard instead of bouncing them to a second login screen.
-      const session = await loginTeacher({ username, password })
-      login(session.accessToken, { name })
-      navigate('/dashboard')
+      // log the new account in too — one submit takes them straight into
+      // their home page instead of bouncing to a second login screen.
+      const session = await loginRequest({ role, username, password })
+      authLogin(session.accessToken, { name, role })
+      navigate(role === 'teacher' ? '/dashboard' : '/student')
     } catch (err) {
       setError(err.message) // e.g. "Username already registered" (409 from the backend)
     } finally {
@@ -38,9 +44,11 @@ export function TeacherSignupPage() {
 
   return (
     <AuthSplitLayout>
-      <h2 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>Create your teacher account.</h2>
+      <h2 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
+        Create your {role} account.
+      </h2>
       <p style={{ color: 'var(--color-ink-muted)', marginBottom: '1.5rem' }}>
-        Set up Compass for your classroom.
+        {role === 'teacher' ? 'Set up Compass for your classroom.' : 'Set up Compass for your classes.'}
       </p>
 
       {error && <p className="error-text">{error}</p>}
@@ -105,6 +113,9 @@ export function TeacherSignupPage() {
 
       <p style={{ marginTop: '1.5rem', fontSize: '0.9rem' }}>
         Already have an account? <Link to="/login">Sign in</Link>
+      </p>
+      <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+        Not a {role === 'teacher' ? 'teacher' : 'student'}? <Link to="/role-select">Go back</Link>
       </p>
     </AuthSplitLayout>
   )

@@ -2,8 +2,9 @@ import { LogoWordmark } from './Logo.jsx'
 
 // Shared two-panel shell for the sign-in/sign-up screens (wireframe spec
 // screen 01): dark forest-green left panel with the pitch, cream right panel
-// holding whatever form gets passed in as `children`. Both TeacherLoginPage
-// and TeacherSignupPage reuse this so the pitch copy/panel only exists once.
+// holding whatever form gets passed in as `children`. LoginPage and
+// SignupPage (both role-aware, student or teacher) reuse this so the pitch
+// copy/panel only exists once.
 export function AuthSplitLayout({ children }) {
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
