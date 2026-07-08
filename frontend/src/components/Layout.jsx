@@ -50,6 +50,16 @@ export function Layout() {
                   </Link>
                 </>
               )}
+              {user.role === 'teacher' && (
+                <>
+                  <Link to="/materials" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Materials
+                  </Link>
+                  <Link to="/recordings" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Recordings
+                  </Link>
+                </>
+              )}
               <Link
                 to={user.role === 'teacher' ? '/settings' : '/student/settings'}
                 style={{ color: 'var(--color-text-on-dark)' }}
