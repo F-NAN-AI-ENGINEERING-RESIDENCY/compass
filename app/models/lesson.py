@@ -19,13 +19,19 @@ class Lesson(Base):
     class_id: Mapped[int] = mapped_column(ForeignKey("classes.class_id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    # Set when status transitions to "live" (via the Zoom widget's start action
-    # or its meeting-started event) — distinct from scheduled_at, the planned time.
+    # Set by our own PATCH .../status lifecycle endpoint when status transitions
+    # to "live" — distinct from scheduled_at, the planned time. Never set by a
+    # third-party video vendor's webhook/event; Compass owns this transition.
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    # Set when status transitions to "ended" (explicit end action, the Zoom SDK's
-    # meeting-ended/host-left event, or the server-side max-duration backstop).
+    # Set by the same lifecycle endpoint when status transitions to "ended".
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String, nullable=False, default="scheduled", server_default="scheduled")
+    # Populated only once the lesson goes live (room is created on-demand, not
+    # at scheduling time). Vendor-neutral: video_provider names which backend
+    # (e.g. "daily") video_room_id belongs to, so swapping vendors later doesn't
+    # require a schema change.
+    video_room_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    video_provider: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     class_: Mapped["Class"] = relationship(back_populates="lessons")
