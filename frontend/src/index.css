@@ -1,0 +1,8 @@
+/* Minimal, neutral base styles only — a real visual design (colors, fonts,
+   layout) is still being decided, so this deliberately stays plain rather
+   than getting styled twice. */
+
+body {
+  margin: 0; /* browsers add default page margin — remove it so layouts can control their own spacing */
+  font-family: system-ui, sans-serif; /* use whatever font the OS already has, no extra downloads for now */
+}
