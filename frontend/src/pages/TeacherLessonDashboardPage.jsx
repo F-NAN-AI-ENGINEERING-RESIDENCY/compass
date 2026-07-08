@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom' // reads the :lessonId part of the current URL; Link to the present view
 import { getLesson } from '../api/lessons.js'
 import { getDashboard, resolveSignal } from '../api/signals.js'
+import { mergeSignals, sortedOpenSignals } from './signalPolling.js'
 
 const POLL_INTERVAL_MS = 5000 // no WebSocket exists yet, so this is how "near real-time" is approximated
 
@@ -43,17 +44,7 @@ export function TeacherLessonDashboardPage() {
         if (cancelled) return
         setError(null)
 
-        setSignals((current) => {
-          const next = { ...current }
-          for (const signal of dashboard.signals) {
-            if (signal.status === 'open') {
-              next[signal.signalId] = signal // new or still-open — add/refresh it
-            } else {
-              delete next[signal.signalId] // resolved/acknowledged elsewhere — drop it from the active list
-            }
-          }
-          return next
-        })
+        setSignals((current) => mergeSignals(current, dashboard.signals))
         // Skill snapshot has no incremental mode on the backend — every
         // response carries the full current picture, so replace outright.
         setSkillSnapshot(dashboard.skillSnapshot)
@@ -90,7 +81,7 @@ export function TeacherLessonDashboardPage() {
     }
   }
 
-  const openSignals = Object.values(signals).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  const openSignals = sortedOpenSignals(signals)
 
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1.5rem' }}>
