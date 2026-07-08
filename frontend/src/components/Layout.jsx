@@ -39,6 +39,9 @@ export function Layout() {
               </Link>
               {user.role === 'student' && (
                 <>
+                  <Link to="/scout" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Scout
+                  </Link>
                   <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
                     Wellbeing
                   </Link>
