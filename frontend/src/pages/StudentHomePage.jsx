@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { joinClass } from '../api/enrollments.js'
 import { getClass } from '../api/classes.js'
 
@@ -15,6 +16,13 @@ export function StudentHomePage() {
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
   const [joinError, setJoinError] = useState(null)
+  const [lessonIdInput, setLessonIdInput] = useState('') // controlled input for the "go to lesson" shortcut below
+  const navigate = useNavigate()
+
+  function handleGoToLesson(event) {
+    event.preventDefault()
+    if (lessonIdInput.trim()) navigate(`/student/lessons/${lessonIdInput.trim()}/join`)
+  }
 
   async function handleJoin(event) {
     event.preventDefault()
@@ -71,6 +79,26 @@ export function StudentHomePage() {
           </div>
         ))
       )}
+
+      {/* Same stand-in as the teacher Classes page: no "list my lessons"
+          endpoint exists, so there's no in-app way to browse to one —
+          enter a known lesson id to jump to the pre-join screen (Sprint 2). */}
+      <form
+        onSubmit={handleGoToLesson}
+        style={{ display: 'flex', gap: '0.75rem', marginTop: '2.5rem', alignItems: 'center' }}
+      >
+        <input
+          type="number"
+          className="text-input"
+          placeholder="Lesson ID"
+          value={lessonIdInput}
+          onChange={(event) => setLessonIdInput(event.target.value)}
+          style={{ width: '8rem' }}
+        />
+        <button type="submit" className="btn-pill btn-pill--outline">
+          Go to lesson →
+        </button>
+      </form>
     </div>
   )
 }

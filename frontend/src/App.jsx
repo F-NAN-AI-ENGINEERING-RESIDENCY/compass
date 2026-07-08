@@ -8,6 +8,8 @@ import { SignupPage } from './pages/SignupPage.jsx'
 import { TeacherDashboardPage } from './pages/TeacherDashboardPage.jsx'
 import { TeacherLessonDashboardPage } from './pages/TeacherLessonDashboardPage.jsx'
 import { StudentHomePage } from './pages/StudentHomePage.jsx'
+import { StudentPreJoinPage } from './pages/StudentPreJoinPage.jsx'
+import { StudentLessonPage } from './pages/StudentLessonPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -30,6 +32,14 @@ export default function App() {
           <Route path="/role-select" element={<RoleSelectPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+
+          {/* Pre-join and in-lesson screens are also full-bleed/no-nav — an
+              immersive "in a call" context per the spec, same reasoning as
+              login/signup above. Still role-gated even without the nav shell. */}
+          <Route element={<ProtectedRoute role="student" />}>
+            <Route path="/student/lessons/:lessonId/join" element={<StudentPreJoinPage />} />
+            <Route path="/student/lessons/:lessonId" element={<StudentLessonPage />} />
+          </Route>
 
           {/* Everything else keeps the persistent top nav: Layout renders it
               once, then <Outlet/> swaps in whichever child route matches. */}
