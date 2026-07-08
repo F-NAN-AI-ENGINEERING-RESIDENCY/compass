@@ -4,15 +4,12 @@ import { ProtectedRoute } from './auth/ProtectedRoute.jsx'
 import { Layout } from './components/Layout.jsx'
 import { TeacherLoginPage } from './pages/TeacherLoginPage.jsx'
 import { TeacherSignupPage } from './pages/TeacherSignupPage.jsx'
+import { TeacherDashboardPage } from './pages/TeacherDashboardPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
 function HomePage() {
   return <h1>Compass</h1>
-}
-// Dashboard gets its real implementation in asia/teacher-dashboard.
-function DashboardPagePlaceholder() {
-  return <p>Dashboard coming in asia/teacher-dashboard</p>
 }
 
 export default function App() {
@@ -38,7 +35,7 @@ export default function App() {
             {/* Nested inside ProtectedRoute, so it redirects to /login unless
                 the user is signed in. */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<DashboardPagePlaceholder />} />
+              <Route path="/dashboard" element={<TeacherDashboardPage />} />
             </Route>
           </Route>
         </Routes>
