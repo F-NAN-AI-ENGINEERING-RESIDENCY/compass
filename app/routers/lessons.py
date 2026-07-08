@@ -19,6 +19,22 @@ def _to_lesson_response(lesson) -> LessonResponse:
     )
 
 
+@router.get("/{lesson_id}", response_model=LessonResponse)
+def get_lesson(
+    lesson_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> LessonResponse:
+    # No ownership/enrollment check: the contract documents only 401/404 for
+    # this endpoint — it's a low-sensitivity read used to confirm a lesson is
+    # live before opening a socket, not gated like the dashboard is.
+    try:
+        lesson = lesson_service.get_lesson_or_404(db, lesson_id)
+    except lesson_service.LessonNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return _to_lesson_response(lesson)
+
+
 @router.patch("/{lesson_id}", response_model=LessonResponse)
 def update_lesson_status(
     lesson_id: int,

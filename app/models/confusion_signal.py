@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID
@@ -27,10 +26,14 @@ class ConfusionSignal(Base):
     public_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4
     )
-    # Nullable + SET NULL (not the sibling tables' usual CASCADE) so a deleted
-    # student's confusion-signal history survives for class-level pattern-spotting.
-    student_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("students.student_id", ondelete="SET NULL"), nullable=True
+    # Required: the teacher always sees who sent a signal (anonymity is from
+    # classmates only, enforced at the API layer, never from the teacher/DB).
+    # RESTRICT rather than CASCADE/SET NULL — accounts are soft-delete only
+    # (is_active flag, no hard-delete endpoint), so this is a defensive choice
+    # protecting signal history from an out-of-band hard delete, not a path
+    # the app itself ever exercises.
+    student_id: Mapped[int] = mapped_column(
+        ForeignKey("students.student_id", ondelete="RESTRICT"), nullable=False
     )
     lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.lesson_id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="open", server_default="open")
@@ -39,5 +42,5 @@ class ConfusionSignal(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    student: Mapped[Optional["Student"]] = relationship(back_populates="confusion_signals")
+    student: Mapped["Student"] = relationship(back_populates="confusion_signals")
     lesson: Mapped["Lesson"] = relationship(back_populates="confusion_signals")
