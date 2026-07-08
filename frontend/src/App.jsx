@@ -5,6 +5,7 @@ import { Layout } from './components/Layout.jsx'
 import { TeacherLoginPage } from './pages/TeacherLoginPage.jsx'
 import { TeacherSignupPage } from './pages/TeacherSignupPage.jsx'
 import { TeacherDashboardPage } from './pages/TeacherDashboardPage.jsx'
+import { TeacherLessonDashboardPage } from './pages/TeacherLessonDashboardPage.jsx'
 
 // Home page has no design yet and isn't one of Asia's assigned screens —
 // stays a placeholder until the team decides what it should be.
@@ -36,6 +37,7 @@ export default function App() {
                 the user is signed in. */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<TeacherDashboardPage />} />
+              <Route path="/lessons/:lessonId" element={<TeacherLessonDashboardPage />} />
             </Route>
           </Route>
         </Routes>
