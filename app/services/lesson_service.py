@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,16 @@ class InvalidLessonTransitionError(Exception):
 
 class LessonNotLiveError(Exception):
     pass
+
+
+def create_lesson(
+    db: Session, class_id: int, title: str, scheduled_at: Optional[datetime] = None
+) -> Lesson:
+    lesson = Lesson(class_id=class_id, title=title, scheduled_at=scheduled_at, status="scheduled")
+    db.add(lesson)
+    db.commit()
+    db.refresh(lesson)
+    return lesson
 
 
 def get_lesson_or_404(db: Session, lesson_id: int) -> Lesson:

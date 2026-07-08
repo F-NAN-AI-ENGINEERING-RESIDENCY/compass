@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
-from app.routers import auth, lessons, signals
+from app.routers import auth, classes, enrollments, lessons, signals
 
 
 @asynccontextmanager
@@ -35,6 +35,8 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(auth.router)
+app.include_router(classes.router)
+app.include_router(enrollments.router)
 app.include_router(lessons.router)
 app.include_router(signals.router)
 

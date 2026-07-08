@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
-from app.schemas.lessons import LessonResponse, LessonStatusUpdateRequest, VideoTokenResponse
-from app.services import auth_service, lesson_service
+from app.schemas.lessons import LessonCreateRequest, LessonResponse, LessonStatusUpdateRequest, VideoTokenResponse
+from app.services import auth_service, class_service, lesson_service
 from app.services.video import VideoService, get_video_service
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
@@ -17,6 +17,24 @@ def _to_lesson_response(lesson) -> LessonResponse:
         started_at=lesson.started_at,
         ended_at=lesson.ended_at,
     )
+
+
+@router.post("", response_model=LessonResponse, status_code=status.HTTP_201_CREATED)
+def create_lesson(
+    payload: LessonCreateRequest,
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> LessonResponse:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    try:
+        class_ = class_service.get_class_or_404(db, payload.class_id)
+        class_service.assert_teacher_owns_class(class_, teacher_id)
+    except class_service.ClassNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except class_service.NotClassOwnerError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    lesson = lesson_service.create_lesson(db, payload.class_id, payload.title, payload.scheduled_at)
+    return _to_lesson_response(lesson)
 
 
 @router.get("/{lesson_id}", response_model=LessonResponse)
