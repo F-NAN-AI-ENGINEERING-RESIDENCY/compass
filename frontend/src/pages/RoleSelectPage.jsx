@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { LogoWordmark } from '../components/Logo.jsx'
+import { ConfidenceShape } from '../components/ConfidenceShape.jsx'
 
 // Wireframe spec screen 02 ("Role select") — "the fork before anything
 // else." Reached from the sign-in page's "Create an account" link; picking a
@@ -66,9 +67,9 @@ function RoleCard({ role, dark, title, body, shapes }) {
       }}
     >
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <Shape color={shapes[0]} kind="circle" />
-        <Shape color={shapes[1]} kind="diamond" />
-        <Shape color={shapes[2]} kind="square" />
+        <ConfidenceShape color={shapes[0]} kind="circle" />
+        <ConfidenceShape color={shapes[1]} kind="diamond" />
+        <ConfidenceShape color={shapes[2]} kind="square" />
       </div>
       <h2 style={{ fontSize: '1.3rem' }}>{title}</h2>
       <p style={{ color: dark ? 'var(--color-text-on-dark-muted)' : 'var(--color-ink-muted)', flex: 1 }}>
@@ -88,15 +89,4 @@ function RoleCard({ role, dark, title, body, shapes }) {
       </Link>
     </div>
   )
-}
-
-function Shape({ color, kind }) {
-  const base = {
-    width: '14px',
-    height: '14px',
-    background: `var(--color-${color})`,
-    borderRadius: kind === 'circle' ? '50%' : kind === 'square' ? '3px' : 0,
-    transform: kind === 'diamond' ? 'rotate(45deg)' : undefined,
-  }
-  return <span style={base} />
 }
