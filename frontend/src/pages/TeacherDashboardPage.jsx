@@ -61,6 +61,8 @@ export function TeacherDashboardPage() {
         <div style={{ flex: 1 }}>
           <input
             type="text"
+            className="text-input"
+            style={{ width: '100%' }}
             placeholder="Class name (e.g. Period 3 Algebra)"
             value={className}
             onChange={(event) => setClassName(event.target.value)}

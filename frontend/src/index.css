@@ -108,7 +108,11 @@ h3 {
   font-weight: 600;
   color: var(--color-ink-muted);
 }
-.field input {
+/* .text-input covers standalone inputs (e.g. the dashboard's inline "create
+   class" field); .field input covers the same look for label+input pairs —
+   both share one ruleset so there's a single place to tweak input styling. */
+.field input,
+.text-input {
   font-family: var(--font-body);
   font-size: 1rem;
   padding: 0.65rem 0.85rem;
@@ -117,7 +121,8 @@ h3 {
   background: white;
   color: var(--color-ink);
 }
-.field input:focus {
+.field input:focus,
+.text-input:focus {
   outline: none;
   border-color: var(--color-forest);
 }
