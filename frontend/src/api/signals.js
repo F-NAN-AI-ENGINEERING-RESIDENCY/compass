@@ -22,3 +22,10 @@ export function resolveSignal(lessonId, signalId) {
     body: JSON.stringify({ status: 'resolved' }),
   })
 }
+
+// Student sends an "I'm lost" signal. Real and merged on main. The backend
+// requires the student be enrolled in the lesson's class (403 otherwise) and
+// the lesson be live (409 otherwise) — see app/services/signal_service.py.
+export function createSignal(lessonId) {
+  return apiRequest(`/api/lessons/${lessonId}/signals`, { method: 'POST' })
+}
