@@ -88,6 +88,65 @@ def test_owning_teacher_can_acknowledge_signal_and_sees_identity(
     assert body["studentName"] == student.name
 
 
+def test_owning_teacher_can_read_signal(
+    client, make_teacher, make_student, make_class, make_enrollment, make_lesson
+):
+    student = make_student(username="ada")
+    teacher, class_, lesson = _make_live_lesson(client, make_teacher, make_class, make_lesson)
+    make_enrollment(student, class_)
+    student_headers = auth_header(client, "student", student.username)
+    create_response = client.post(f"/api/lessons/{lesson.lesson_id}/signals", headers=student_headers)
+    signal_id = create_response.json()["signalId"]
+
+    teacher_headers = auth_header(client, "teacher", teacher.username)
+    response = client.get(f"/api/lessons/{lesson.lesson_id}/signals/{signal_id}", headers=teacher_headers)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "open"
+    assert body["studentId"] == student.student_id
+    assert body["studentName"] == student.name
+
+
+def test_non_owning_teacher_cannot_read_signal(
+    client, make_teacher, make_student, make_class, make_enrollment, make_lesson
+):
+    student = make_student()
+    owner, class_, lesson = _make_live_lesson(
+        client, make_teacher, make_class, make_lesson, teacher=make_teacher(username="owner_t4")
+    )
+    make_enrollment(student, class_)
+    student_headers = auth_header(client, "student", student.username)
+    create_response = client.post(f"/api/lessons/{lesson.lesson_id}/signals", headers=student_headers)
+    signal_id = create_response.json()["signalId"]
+
+    other_teacher = make_teacher(username="other_t4")
+    other_headers = auth_header(client, "teacher", other_teacher.username)
+    response = client.get(f"/api/lessons/{lesson.lesson_id}/signals/{signal_id}", headers=other_headers)
+    assert response.status_code == 403
+
+
+def test_read_missing_signal_is_404(client, make_teacher, make_class, make_lesson):
+    teacher, class_, lesson = _make_live_lesson(client, make_teacher, make_class, make_lesson)
+    headers = auth_header(client, "teacher", teacher.username)
+    response = client.get(
+        f"/api/lessons/{lesson.lesson_id}/signals/00000000-0000-0000-0000-000000000000",
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+def test_student_cannot_read_signal(client, make_teacher, make_student, make_class, make_enrollment, make_lesson):
+    student = make_student()
+    teacher, class_, lesson = _make_live_lesson(client, make_teacher, make_class, make_lesson)
+    make_enrollment(student, class_)
+    student_headers = auth_header(client, "student", student.username)
+    create_response = client.post(f"/api/lessons/{lesson.lesson_id}/signals", headers=student_headers)
+    signal_id = create_response.json()["signalId"]
+
+    response = client.get(f"/api/lessons/{lesson.lesson_id}/signals/{signal_id}", headers=student_headers)
+    assert response.status_code == 403
+
+
 def test_non_owning_teacher_cannot_update_signal(
     client, make_teacher, make_student, make_class, make_enrollment, make_lesson
 ):
