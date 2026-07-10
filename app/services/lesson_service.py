@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.enrollment import Enrollment
 from app.models.lesson import Lesson
 from app.services.video import VideoService
-from app.websockets.broadcaster import broadcast
+from app.websockets.broadcaster import broadcast, broadcast_and_close
 
 _VALID_TRANSITIONS = {
     "scheduled": {"live"},
@@ -88,7 +88,9 @@ def transition_lesson_status(db: Session, lesson: Lesson, new_status: str, video
         lesson.status = new_status
         db.commit()
         db.refresh(lesson)
-        broadcast(lesson.lesson_id, "lesson.ended", {"lessonId": lesson.lesson_id, "status": lesson.status})
+        broadcast_and_close(
+            lesson.lesson_id, "lesson.ended", {"lessonId": lesson.lesson_id, "status": lesson.status}
+        )
 
     return lesson
 

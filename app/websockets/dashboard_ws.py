@@ -19,9 +19,15 @@ async def lesson_dashboard_socket(websocket: WebSocket, lesson_id: int, db: Sess
     await manager.connect(lesson_id, websocket)
     try:
         while True:
-            # Clients don't send anything meaningful here — this just blocks
-            # until the socket closes so we notice the disconnect.
-            await websocket.receive_text()
+            try:
+                message = await websocket.receive_json()
+            except ValueError:
+                # Malformed frame — the only documented client message is a
+                # ping, so ignore anything else rather than dropping the
+                # connection over a stray frame from an idle proxy/client bug.
+                continue
+            if message.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
     except WebSocketDisconnect:
         pass
     finally:

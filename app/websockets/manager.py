@@ -32,6 +32,20 @@ class ConnectionManager:
             except Exception:
                 self.disconnect(lesson_id, websocket)
 
+    async def _close_lesson(self, lesson_id: int, code: int) -> None:
+        for websocket in list(self._connections.get(lesson_id, ())):
+            try:
+                await websocket.close(code=code)
+            except Exception:
+                pass
+        self._connections.pop(lesson_id, None)
+
+    async def _broadcast_and_close(self, lesson_id: int, message: dict, code: int) -> None:
+        # One task, not two scheduled separately — guarantees the close can't
+        # jump ahead of the send on the event loop.
+        await self._broadcast(lesson_id, message)
+        await self._close_lesson(lesson_id, code)
+
     def broadcast_threadsafe(self, lesson_id: int, message: dict) -> None:
         """Entry point for callers on FastAPI's sync threadpool (every service
         function that fires an event today runs there, not on the event loop).
@@ -41,6 +55,11 @@ class ConnectionManager:
         if self._loop is None:
             return
         asyncio.run_coroutine_threadsafe(self._broadcast(lesson_id, message), self._loop)
+
+    def broadcast_and_close_threadsafe(self, lesson_id: int, message: dict, code: int) -> None:
+        if self._loop is None:
+            return
+        asyncio.run_coroutine_threadsafe(self._broadcast_and_close(lesson_id, message, code), self._loop)
 
 
 manager = ConnectionManager()
