@@ -1,0 +1,137 @@
+/* Design tokens from the Compass wireframe spec, kept as CSS custom properties
+   (variables) in one place so every component reads colors/fonts from here
+   instead of hardcoding values. Swap the hex codes below once the design team
+   hands off exact brand values — nothing else in the app should need to change. */
+:root {
+  /* Confidence color ramp: forest (lowest) -> olive -> ochre -> clay (highest).
+     The spec is explicit that red is never used, even for the "low" end —
+     clay is a warm terracotta, not an alarm color. */
+  --color-forest: #1f3a2e; /* deep forest green — hero panels, primary buttons, nav */
+  --color-forest-dark: #14261d; /* hover/active shade of forest, one step darker */
+  --color-olive: #6f7d4f; /* lower-mid confidence tiles */
+  --color-ochre: #c98a2c; /* mid-high confidence tiles */
+  --color-clay: #b5573a; /* top of the ramp — warm terracotta, deliberately not red */
+  --color-cream: #faf6ee; /* off-white content panels, paired with forest panels */
+  --color-cream-dim: #f1ead9; /* slightly deeper cream, for cards sitting on --color-cream */
+
+  /* Text colors: cream text sits on dark forest backgrounds, ink text sits on cream. */
+  --color-text-on-dark: #f5f1e6;
+  --color-text-on-dark-muted: #cbd4c8;
+  --color-ink: #1c1c1a;
+  --color-ink-muted: #5c5c56;
+
+  /* Typefaces, per the spec's footer notes. Fall back to generic families in
+     case the Google Fonts request is blocked (offline dev, network hiccups). */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif; /* headlines */
+  --font-body: 'Albert Sans', system-ui, sans-serif; /* body text, buttons, form fields */
+  --font-mono: 'Spline Sans Mono', ui-monospace, monospace; /* data/mono contexts, e.g. join codes */
+
+  --radius-pill: 999px; /* fully-rounded buttons, used throughout the spec */
+  --radius-card: 16px; /* rounded-corner cards */
+}
+
+* {
+  box-sizing: border-box; /* padding/border count toward an element's declared width, not on top of it */
+}
+
+body {
+  margin: 0; /* remove the browser's default page margin */
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background: var(--color-cream);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display); /* headlines use the display typeface, everything else uses body */
+  margin: 0; /* let each component decide its own spacing instead of fighting browser defaults */
+}
+
+/* Reusable pill button — the spec uses this same rounded shape for every
+   primary/secondary action across all 16 screens. */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-pill);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* Solid dark-green pill — the primary action on cream backgrounds (e.g. "Sign in"). */
+.btn-pill--primary {
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+}
+.btn-pill--primary:hover {
+  background: var(--color-forest-dark);
+}
+.btn-pill--primary:disabled {
+  opacity: 0.6; /* visibly inert without a separate disabled color per state */
+  cursor: not-allowed;
+}
+
+/* Outlined pill — secondary actions (e.g. "Continue with school SSO"). */
+.btn-pill--outline {
+  background: transparent;
+  color: var(--color-forest);
+  border: 1.5px solid var(--color-forest);
+}
+.btn-pill--outline:hover {
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+}
+
+/* Rounded-corner card, the other recurring shape in the spec (dashboard tiles,
+   role-select cards, etc). */
+.card {
+  background: var(--color-cream-dim);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+}
+
+/* Form field: a label stacked above its input, used on both auth pages. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+.field label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+/* .text-input covers standalone inputs (e.g. the dashboard's inline "create
+   class" field); .field input covers the same look for label+input pairs —
+   both share one ruleset so there's a single place to tweak input styling. */
+.field input,
+.text-input {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px; /* softer than a full pill — pills are for buttons/tags, not text inputs */
+  border: 1.5px solid var(--color-cream-dim);
+  background: white;
+  color: var(--color-ink);
+}
+.field input:focus,
+.text-input:focus {
+  outline: none;
+  border-color: var(--color-forest);
+}
+
+/* Error message shown under a form when a request fails (bad credentials,
+   duplicate account, etc). Clay from the confidence ramp instead of red,
+   consistent with the spec's "red is never used" rule. */
+.error-text {
+  color: var(--color-clay);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
