@@ -1,0 +1,43 @@
+databases:
+  - name: compass-db
+    plan: free
+
+services:
+  - type: web
+    name: compass-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: compass-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      # Pin explicitly: without this Render's Python-native builder defaults to
+      # its newest image (observed: 3.14), which is newer than pydantic-core's
+      # published wheels, forcing a from-source build that fails in Render's
+      # read-only Cargo cache. Matches the .python-version file at repo root.
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: SESSION_EXPIRE_HOURS
+        value: "24"
+      # CORS_ORIGINS: set manually once compass-frontend's URL is known (see README/deploy notes).
+      - key: CORS_ORIGINS
+        sync: false
+      # Optional: real video rooms require a Daily.co key; blank keeps the
+      # existing FakeVideoService fallback (no video, everything else works).
+      - key: DAILY_API_KEY
+        sync: false
+
+  - type: web
+    name: compass-frontend
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      # VITE_API_URL: set manually once compass-api's URL is known (see README/deploy notes).
+      - key: VITE_API_URL
+        sync: false
