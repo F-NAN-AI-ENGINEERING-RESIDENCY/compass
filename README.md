@@ -2,7 +2,7 @@
 
 An AI-assisted support platform for students in virtual and hybrid K-12 learning environments. Compass gives students a private, one-tap way to signal confusion during a live lesson, and gives teachers a real-time dashboard to see who needs help before the lesson ends instead of days later.
 
-**Live demo:** _pending deployment — link goes here once the Render deploy is up_
+**Live demo:** https://compass-frontend-9scf.onrender.com (backend API: https://compass-api-mpft.onrender.com)
 
 ## This submission's scope
 
