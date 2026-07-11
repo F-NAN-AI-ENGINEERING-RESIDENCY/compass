@@ -52,6 +52,12 @@ def create_signal(db: Session, lesson_id: int, student_id: int) -> ConfusionSign
     return signal
 
 
+def get_signal(db: Session, lesson_id: int, public_id: uuid.UUID, teacher_id: int) -> ConfusionSignal:
+    lesson = get_lesson_or_404(db, lesson_id)
+    assert_teacher_owns_lesson(lesson, teacher_id)
+    return _get_signal_or_404(db, lesson_id, public_id)
+
+
 def update_signal_status(
     db: Session, lesson_id: int, public_id: uuid.UUID, new_status: str, teacher_id: int
 ) -> ConfusionSignal:
