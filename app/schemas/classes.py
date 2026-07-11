@@ -9,6 +9,11 @@ class ClassCreateRequest(CamelModel):
     name: str
 
 
+class ClassUpdateRequest(CamelModel):
+    name: Optional[str] = None
+    alert_threshold: Optional[Decimal] = None
+
+
 class EnrolledStudent(CamelModel):
     student_id: int
     student_name: str

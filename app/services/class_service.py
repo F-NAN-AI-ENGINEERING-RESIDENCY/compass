@@ -1,3 +1,6 @@
+from decimal import Decimal
+from typing import Optional
+
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.class_ import Class, generate_join_code
@@ -71,6 +74,27 @@ def create_class(db: Session, teacher_id: int, name: str) -> Class:
     db.commit()
     db.refresh(class_)
     return class_
+
+
+def get_classes_for_teacher(db: Session, teacher_id: int) -> list[Class]:
+    return db.query(Class).filter(Class.teacher_id == teacher_id).order_by(Class.created_at).all()
+
+
+def update_class(
+    db: Session, class_: Class, name: Optional[str], alert_threshold: Optional[Decimal]
+) -> Class:
+    if name is not None:
+        class_.name = name
+    if alert_threshold is not None:
+        class_.alert_threshold = alert_threshold
+    db.commit()
+    db.refresh(class_)
+    return class_
+
+
+def delete_class(db: Session, class_: Class) -> None:
+    db.delete(class_)
+    db.commit()
 
 
 def generate_unique_join_code(db: Session, max_attempts: int = 10) -> str:
