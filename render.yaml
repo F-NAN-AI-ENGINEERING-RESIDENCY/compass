@@ -41,3 +41,11 @@ services:
       # VITE_API_URL: set manually once compass-api's URL is known (see README/deploy notes).
       - key: VITE_API_URL
         sync: false
+    routes:
+      # React Router handles client-side paths like /login — without this, a
+      # direct visit or page refresh on any non-root path 404s, since the
+      # static file server looks for a literal file at that path. Also backed
+      # by frontend/public/_redirects for the case this blueprint isn't used.
+      - type: rewrite
+        source: /*
+        destination: /index.html
