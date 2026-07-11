@@ -1,29 +1,42 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createClass, getClass } from '../api/classes.js'
+import { createClass, deleteClass, getClass, listClasses, updateClass } from '../api/classes.js'
 import { AvatarBadge } from '../components/AvatarBadge.jsx'
 
-// Wireframe spec screen 13 ("Class management"), scoped to Sprint 1's actual
-// requirement: create a class and view its roster. No edit/delete class yet —
-// those (the "U" and "D" of the spec's CRUD note) aren't part of this sprint.
-//
-// There's no GET /api/classes endpoint to list a teacher's classes (only
-// POST /api/classes and GET /api/classes/:id exist), so this page tracks
-// classes created during the current session in local state rather than
-// fetching a persisted list — reloading the page loses that list until a
-// real "list my classes" endpoint exists.
-//
-// Roster: felix/roster-endpoints merged to main, and GET /api/classes/:id
-// now returns a populated `enrollments` list for the owning teacher (see
-// EnrolledStudent in app/schemas/classes.py) — create-class -> join-by-code
-// -> roster is a real end-to-end flow now, not just a shell.
+// Wireframe spec screen 13 ("Class management"): create a class, view its
+// roster, rename it, or delete it. Classes are fetched from GET /api/classes
+// on load, so they persist across navigation/reload instead of only living
+// in this page's session state.
 export function TeacherDashboardPage() {
-  const [classes, setClasses] = useState([]) // classes created this session, each augmented with its roster once fetched
+  const [classes, setClasses] = useState([]) // each augmented with roster/rosterError once fetched
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true)
+  const [loadError, setLoadError] = useState(null)
   const [className, setClassName] = useState('') // controlled input for the "create class" form
   const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
   const [lessonIdInput, setLessonIdInput] = useState('') // controlled input for the "jump to lesson" shortcut below
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadClasses() {
+      try {
+        const persisted = await listClasses() // GET /api/classes
+        if (cancelled) return
+        setClasses(persisted.map((c) => ({ ...c, roster: null, rosterError: null })))
+        persisted.forEach((c) => loadRoster(c.classId))
+      } catch (err) {
+        if (!cancelled) setLoadError(err.message)
+      } finally {
+        if (!cancelled) setIsLoadingClasses(false)
+      }
+    }
+    loadClasses()
+    return () => {
+      cancelled = true // avoids setting state after the component's unmounted if this outlives it
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadRoster is stable enough for a mount-only effect
+  }, [])
 
   function handleJumpToLesson(event) {
     event.preventDefault()
@@ -48,7 +61,7 @@ export function TeacherDashboardPage() {
 
   async function loadRoster(classId) {
     try {
-      const detail = await getClass(classId) // GET /api/classes/:id — now returns a real enrollments list
+      const detail = await getClass(classId) // GET /api/classes/:id — returns a real enrollments list
       // `enrollments` is only populated for the owning teacher (student
       // requests get null per the backend) — ?? [] just covers that null
       // case and the brief moment before a fresh class has any enrollments yet.
@@ -61,6 +74,16 @@ export function TeacherDashboardPage() {
         current.map((c) => (c.classId === classId ? { ...c, rosterError: err.message } : c)),
       )
     }
+  }
+
+  async function handleRename(classId, newName) {
+    const updated = await updateClass(classId, { name: newName }) // PATCH /api/classes/:id
+    setClasses((current) => current.map((c) => (c.classId === classId ? { ...c, ...updated } : c)))
+  }
+
+  async function handleDelete(classId) {
+    await deleteClass(classId) // DELETE /api/classes/:id — cascades to its enrollments/lessons server-side
+    setClasses((current) => current.filter((c) => c.classId !== classId))
   }
 
   return (
@@ -89,10 +112,21 @@ export function TeacherDashboardPage() {
         </button>
       </form>
 
-      {classes.length === 0 ? (
+      {isLoadingClasses ? (
+        <p style={{ color: 'var(--color-ink-muted)' }}>Loading your classes…</p>
+      ) : loadError ? (
+        <p className="error-text">Couldn't load your classes ({loadError})</p>
+      ) : classes.length === 0 ? (
         <p style={{ color: 'var(--color-ink-muted)' }}>No classes yet — create one above.</p>
       ) : (
-        classes.map((classItem) => <ClassCard key={classItem.classId} classItem={classItem} />)
+        classes.map((classItem) => (
+          <ClassCard
+            key={classItem.classId}
+            classItem={classItem}
+            onRename={handleRename}
+            onDelete={handleDelete}
+          />
+        ))
       )}
 
       {/* There's no POST /api/lessons or "list my lessons" endpoint yet, so
@@ -119,25 +153,102 @@ export function TeacherDashboardPage() {
   )
 }
 
-// One class's card: name, join code, and its roster (or an explanation of
-// why the roster couldn't load).
-function ClassCard({ classItem }) {
+// One class's card: name (editable), join code, roster, and delete.
+function ClassCard({ classItem, onRename, onDelete }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedName, setEditedName] = useState(classItem.name)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
+
+  async function handleSaveName(event) {
+    event.preventDefault()
+    setSaveError(null)
+    setIsSaving(true)
+    try {
+      await onRename(classItem.classId, editedName)
+      setIsEditing(false)
+    } catch (err) {
+      setSaveError(err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDeleteClick() {
+    if (!window.confirm(`Delete "${classItem.name}"? This also removes its enrollments and lessons.`)) {
+      return
+    }
+    setDeleteError(null)
+    setIsDeleting(true)
+    try {
+      await onDelete(classItem.classId)
+    } catch (err) {
+      setDeleteError(err.message)
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="card" style={{ marginBottom: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h2 style={{ fontSize: '1.25rem' }}>{classItem.name}</h2>
-        {/* Join code in the spec's mono typeface — it's data students type in, not prose. */}
-        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-muted)' }}>
-          {classItem.joinCode}
-        </span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.75rem' }}>
+        {isEditing ? (
+          <form onSubmit={handleSaveName} style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+            <input
+              type="text"
+              className="text-input"
+              style={{ flex: 1 }}
+              value={editedName}
+              onChange={(event) => setEditedName(event.target.value)}
+              required
+              autoFocus
+            />
+            <button type="submit" className="btn-pill btn-pill--primary" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              className="btn-pill btn-pill--outline"
+              onClick={() => {
+                setIsEditing(false)
+                setEditedName(classItem.name)
+                setSaveError(null)
+              }}
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <>
+            <h2 style={{ fontSize: '1.25rem' }}>{classItem.name}</h2>
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'baseline' }}>
+              {/* Join code in the spec's mono typeface — it's data students type in, not prose. */}
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-ink-muted)' }}>
+                {classItem.joinCode}
+              </span>
+              <button type="button" className="btn-pill btn-pill--outline" onClick={() => setIsEditing(true)}>
+                Rename
+              </button>
+              <button
+                type="button"
+                className="btn-pill btn-pill--outline"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
+      {saveError && <p className="error-text">{saveError}</p>}
+      {deleteError && <p className="error-text">{deleteError}</p>}
 
       <h3 style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)', margin: '1rem 0 0.5rem' }}>
         Roster
       </h3>
       {classItem.rosterError ? (
-        // Only fires on a genuine error (network issue, 403, 404) — the
-        // happy path now returns real roster data, see the file-level note above.
         <p style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)' }}>
           Roster unavailable ({classItem.rosterError})
         </p>

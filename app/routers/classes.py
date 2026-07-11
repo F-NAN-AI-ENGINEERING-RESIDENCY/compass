@@ -1,8 +1,10 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
-from app.schemas.classes import ClassCreateRequest, ClassResponse, EnrolledStudent
+from app.schemas.classes import ClassCreateRequest, ClassResponse, ClassUpdateRequest, EnrolledStudent
 from app.services import auth_service, class_service
 
 router = APIRouter(prefix="/api/classes", tags=["classes"])
@@ -42,6 +44,16 @@ def create_class(
     return _to_class_response(class_)
 
 
+@router.get("", response_model=List[ClassResponse])
+def list_classes(
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> List[ClassResponse]:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    classes = class_service.get_classes_for_teacher(db, teacher_id)
+    return [_to_class_response(class_) for class_ in classes]
+
+
 @router.get("/{class_id}", response_model=ClassResponse)
 def get_class(
     class_id: int,
@@ -62,3 +74,39 @@ def get_class(
     is_owning_teacher = current_user.role.value == "teacher"
     enrollments = class_service.get_class_roster(db, class_id) if is_owning_teacher else None
     return _to_class_response(class_, enrollments)
+
+
+@router.patch("/{class_id}", response_model=ClassResponse)
+def update_class(
+    class_id: int,
+    payload: ClassUpdateRequest,
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> ClassResponse:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    try:
+        class_ = class_service.get_class_or_404(db, class_id)
+        class_service.assert_teacher_owns_class(class_, teacher_id)
+    except class_service.ClassNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except class_service.NotClassOwnerError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    class_ = class_service.update_class(db, class_, payload.name, payload.alert_threshold)
+    return _to_class_response(class_)
+
+
+@router.delete("/{class_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_class(
+    class_id: int,
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> None:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    try:
+        class_ = class_service.get_class_or_404(db, class_id)
+        class_service.assert_teacher_owns_class(class_, teacher_id)
+    except class_service.ClassNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except class_service.NotClassOwnerError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    class_service.delete_class(db, class_)
