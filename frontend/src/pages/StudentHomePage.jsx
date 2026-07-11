@@ -1,23 +1,51 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { joinClass } from '../api/enrollments.js'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { joinClass, listMyEnrollments } from '../api/enrollments.js'
 import { getClass } from '../api/classes.js'
 
 // Wireframe spec's student home shell: "join class, view enrolled classes."
-// Like the teacher's Classes page, there's no "list my enrolled classes"
-// endpoint, so classes joined this session are tracked in local state —
-// reloading the page loses the list until a real list endpoint exists.
 //
 // POST /api/enrollments (join by code) exists on felix/roster-endpoints
 // (open PR, not yet merged to main) — this will 404 until that merges, same
 // situation as the teacher dashboard's "create class."
+//
+// The on-load fetch below calls listMyEnrollments(), which hits a GUESSED,
+// UNCONFIRMED endpoint (see the comment in api/enrollments.js) — there is no
+// real "list my enrolled classes" route today. This will 404 until the
+// backend team confirms/builds it; treat that as expected until then.
 export function StudentHomePage() {
-  const [classes, setClasses] = useState([]) // classes joined this session
+  const [classes, setClasses] = useState([])
   const [joinCode, setJoinCode] = useState('')
   const [isJoining, setIsJoining] = useState(false)
-  const [joinError, setJoinError] = useState(null)
+  const [loading, setLoading] = useState(true) // true while the on-load enrollments fetch is in flight
+  const [error, setError] = useState(null) // shared by the load fetch and the join submit
+  const [joinSuccess, setJoinSuccess] = useState(null)
   const [lessonIdInput, setLessonIdInput] = useState('') // controlled input for the "go to lesson" shortcut below
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadEnrolledClasses() {
+      try {
+        const enrollments = await listMyEnrollments()
+        // EnrollmentResponse only has {enrollmentId, studentId, classId,
+        // enrolledAt} — no class name — so fetch each class's details too,
+        // same chaining pattern as the join flow below.
+        const classDetails = await Promise.all(
+          enrollments.map((enrollment) => getClass(enrollment.classId)),
+        )
+        if (!cancelled) setClasses(classDetails)
+      } catch (err) {
+        if (!cancelled) setError(err.message)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    loadEnrolledClasses()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function handleGoToLesson(event) {
     event.preventDefault()
@@ -26,18 +54,17 @@ export function StudentHomePage() {
 
   async function handleJoin(event) {
     event.preventDefault()
-    setJoinError(null)
+    setError(null)
+    setJoinSuccess(null)
     setIsJoining(true)
     try {
       const enrollment = await joinClass(joinCode.trim().toUpperCase()) // join codes are uppercase (see Class.generate_join_code's alphabet)
       setJoinCode('')
-      // EnrollmentResponse only has {enrollmentId, studentId, classId,
-      // enrolledAt} — no class name — so fetch the class details too, same
-      // chaining pattern as the teacher dashboard's create-then-fetch-roster.
       const classDetail = await getClass(enrollment.classId)
       setClasses((current) => [...current, classDetail])
+      setJoinSuccess(`Joined ${classDetail.name}!`)
     } catch (err) {
-      setJoinError(err.message) // e.g. "No class found for join code..." or "Already enrolled in this class"
+      setError(err.message) // e.g. "No class found for join code..." or "Already enrolled in this class"
     } finally {
       setIsJoining(false)
     }
@@ -61,22 +88,31 @@ export function StudentHomePage() {
             onChange={(event) => setJoinCode(event.target.value)}
             required
           />
-          {joinError && <p className="error-text">{joinError}</p>}
         </div>
         <button type="submit" className="btn-pill btn-pill--primary" disabled={isJoining}>
           {isJoining ? 'Joining…' : 'Join class'}
         </button>
       </form>
 
-      {classes.length === 0 ? (
+      {error && <p className="error-text">{error}</p>}
+      {joinSuccess && <p style={{ color: 'var(--color-forest)', marginBottom: '1rem' }}>{joinSuccess}</p>}
+
+      {loading ? (
+        <p style={{ color: 'var(--color-ink-muted)' }}>Loading your classes…</p>
+      ) : classes.length === 0 ? (
         <p style={{ color: 'var(--color-ink-muted)' }}>
           You haven't joined a class yet — enter a join code from your teacher above.
         </p>
       ) : (
         classes.map((classItem) => (
-          <div key={classItem.classId} className="card" style={{ marginBottom: '1rem' }}>
+          <Link
+            key={classItem.classId}
+            to={`/student/class/${classItem.classId}`}
+            className="card"
+            style={{ display: 'block', marginBottom: '1rem', textDecoration: 'none', color: 'inherit' }}
+          >
             <h2 style={{ fontSize: '1.25rem' }}>{classItem.name}</h2>
-          </div>
+          </Link>
         ))
       )}
 
