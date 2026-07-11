@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,13 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.exceptions import register_exception_handlers
 from app.routers import auth, classes, enrollments, lessons, signals
+from app.websockets import dashboard_ws
+from app.websockets.manager import manager
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: nothing to do yet — DB connections are opened per-request via
-    # app.dependencies.get_db, and the WebSocket connection manager (added in
-    # a later step) will register itself here.
+    # The connection manager needs the running loop so broadcast() (called
+    # from service code on FastAPI's sync threadpool) can schedule sends onto
+    # it via run_coroutine_threadsafe.
+    manager.bind_loop(asyncio.get_running_loop())
     yield
     # Shutdown: nothing to do yet.
 
@@ -39,10 +43,7 @@ app.include_router(classes.router)
 app.include_router(enrollments.router)
 app.include_router(lessons.router)
 app.include_router(signals.router)
-
-# WebSocket route is registered here in a later step, e.g.:
-# from app.websockets import dashboard_ws
-# app.include_router(dashboard_ws.router)
+app.include_router(dashboard_ws.router)
 
 
 @app.get("/health")
