@@ -78,8 +78,13 @@ All endpoints below reflect what's actually implemented today; see "Known deviat
 | Method & Path | Description |
 |---|---|
 | `POST /api/classes` | Teacher creates a class; server generates a shareable join code. |
+| `GET /api/classes` | Lists the logged-in teacher's own classes. |
 | `GET /api/classes/:classId` | Class details; includes the enrolled roster if the requester is the owning teacher. |
+| `PATCH /api/classes/:classId` | Teacher renames the class or adjusts its alert threshold. |
+| `DELETE /api/classes/:classId` | Teacher deletes the class (cascades to its enrollments and lessons). |
 | `POST /api/enrollments` | Student joins a class by join code. |
+
+Classes has full Create/Read/Update/Delete — this is the resource satisfying the "at least one resource with full CRUD" requirement. Signals (below) also has all four, independently.
 
 #### Lessons
 
