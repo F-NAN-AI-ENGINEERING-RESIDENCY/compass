@@ -13,11 +13,13 @@ class RecordingNotFoundError(Exception):
     pass
 
 
-def upsert_recording_from_webhook(db: Session, payload: dict) -> Optional[Recording]:
+def upsert_recording_from_webhook(db: Session, payload: dict) -> tuple:
     """Persists a Daily "recording.ready-to-download" event. Idempotent: a
     repeat delivery for a provider_recording_id we've already stored is a
     no-op, so it never regresses a recording whose transcription has since
-    progressed past "ready"."""
+    progressed past "ready". Returns (recording_or_none, created) — callers
+    use `created` to gate one-time side effects (e.g. enqueuing the
+    transcription job) so a replay never re-triggers them."""
     room_name = payload.get("room_name")
     provider_recording_id = payload.get("recording_id")
 
@@ -25,12 +27,12 @@ def upsert_recording_from_webhook(db: Session, payload: dict) -> Optional[Record
         db.query(Recording).filter(Recording.provider_recording_id == provider_recording_id).first()
     )
     if existing is not None:
-        return existing
+        return existing, False
 
     lesson = db.query(Lesson).filter(Lesson.video_room_id == room_name).first()
     if lesson is None:
         logger.info("Daily webhook for unrecognized room %r; ignoring", room_name)
-        return None
+        return None, False
 
     recording = Recording(
         lesson_id=lesson.lesson_id,
@@ -41,7 +43,7 @@ def upsert_recording_from_webhook(db: Session, payload: dict) -> Optional[Record
     db.add(recording)
     db.commit()
     db.refresh(recording)
-    return recording
+    return recording, True
 
 
 def list_recordings_for_lesson(db: Session, lesson_id: int) -> list:

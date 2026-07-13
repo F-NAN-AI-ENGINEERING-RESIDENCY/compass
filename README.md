@@ -125,6 +125,7 @@ Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owne
 - The dashboard's per-signal entries and the PATCH response include the student's identity (`studentId`, `studentName`) to the teacher. The original contract's `{ signalId, createdAt, status }` shape predates a later, explicit team decision that the teacher always sees who sent a signal — anonymity is from classmates only, never from the teacher.
 - Classes/Enrollments/Lessons/Auth aren't in the original API Contract section at all (it only documented the signals/dashboard/WS slice) — they're included above since they're real and load-bearing for the setup flow.
 - `skill.updated` (documented in the original WS contract) isn't fired by anything yet, since nothing writes skill data — see the skill-standing note earlier in this README.
+- Transcription runs as a synchronous FastAPI `BackgroundTask` (a deliberate capstone-scale choice over a real task queue), triggered by the Daily recording webhook. Known gap: a process crash/restart mid-job leaves that recording's `status` stuck at `transcribing` — the job's own exception handling only covers in-process failures, not restarts, and no reconciliation job exists to find and retry stuck recordings.
 
 ### Schema Design
 

@@ -3,12 +3,13 @@ import hashlib
 import hmac
 import json
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.dependencies import get_db
 from app.services import recording_service
+from app.services.transcript_service import run_transcription_job
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
@@ -38,6 +39,7 @@ def _verify_signature(raw_body: bytes, timestamp: str, signature: str) -> bool:
 @router.post("/daily", status_code=status.HTTP_200_OK)
 async def daily_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_webhook_timestamp: str = Header(default=None),
     x_webhook_signature: str = Header(default=None),
     db: Session = Depends(get_db),
@@ -52,5 +54,9 @@ async def daily_webhook(
     if event.get("type") != RECORDING_READY_EVENT:
         return {"ignored": True}
 
-    recording_service.upsert_recording_from_webhook(db, event.get("payload") or {})
+    recording, created = recording_service.upsert_recording_from_webhook(db, event.get("payload") or {})
+    # Only a first insert enqueues the job — the idempotent-upsert short
+    # circuit above must never re-trigger transcription on a replay.
+    if created and recording is not None:
+        background_tasks.add_task(run_transcription_job, recording.recording_id)
     return {"ok": True}

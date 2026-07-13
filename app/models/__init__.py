@@ -16,6 +16,7 @@ from app.models.session import Session
 from app.models.skill_topic import SkillTopic
 from app.models.student import Student
 from app.models.teacher import Teacher
+from app.models.transcript_chunk import TranscriptChunk
 from app.models.tutor_message import TutorMessage
 from app.models.tutor_session import TutorSession
 
@@ -32,6 +33,7 @@ __all__ = [
     "SkillTopic",
     "Student",
     "Teacher",
+    "TranscriptChunk",
     "TutorMessage",
     "TutorSession",
 ]

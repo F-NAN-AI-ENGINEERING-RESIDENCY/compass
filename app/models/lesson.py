@@ -50,3 +50,6 @@ class Lesson(Base):
     recordings: Mapped[list["Recording"]] = relationship(
         back_populates="lesson", cascade="all, delete-orphan", passive_deletes=True
     )
+    transcript_chunks: Mapped[list["TranscriptChunk"]] = relationship(
+        back_populates="lesson", cascade="all, delete-orphan", passive_deletes=True
+    )

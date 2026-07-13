@@ -28,3 +28,6 @@ class Recording(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
 
     lesson: Mapped["Lesson"] = relationship(back_populates="recordings")
+    transcript_chunks: Mapped[list["TranscriptChunk"]] = relationship(
+        back_populates="recording", cascade="all, delete-orphan", passive_deletes=True
+    )
