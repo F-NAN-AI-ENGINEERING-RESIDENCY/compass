@@ -39,6 +39,11 @@ class VideoService(ABC):
     def get_room_url(self, room_id: str) -> str:
         """Returns the joinable URL for an existing room."""
 
+    @abstractmethod
+    def get_recording_access_link(self, provider_recording_id: str) -> str:
+        """Returns a fresh, temporary download URL for a finished recording.
+        Never cache the result — Daily's access links expire."""
+
 
 class DailyVideoService(VideoService):
     """Talks to Daily.co's REST API. Field names follow Daily's documented
@@ -97,6 +102,11 @@ class DailyVideoService(VideoService):
         response.raise_for_status()
         return response.json()["url"]
 
+    def get_recording_access_link(self, provider_recording_id: str) -> str:
+        response = self._client.get(f"/recordings/{provider_recording_id}/access-link")
+        response.raise_for_status()
+        return response.json()["download_link"]
+
 
 class FakeVideoService(VideoService):
     """Deterministic, network-free stand-in. Used whenever VIDEO_PROVIDER is
@@ -113,6 +123,9 @@ class FakeVideoService(VideoService):
 
     def get_room_url(self, room_id: str) -> str:
         return f"https://fake.daily.co/{room_id}"
+
+    def get_recording_access_link(self, provider_recording_id: str) -> str:
+        return f"https://fake.daily.co/recordings/{provider_recording_id}/download"
 
 
 _video_service = None

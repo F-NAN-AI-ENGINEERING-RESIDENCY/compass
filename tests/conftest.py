@@ -18,6 +18,7 @@ from app.main import app
 from app.models.class_ import Class
 from app.models.enrollment import Enrollment
 from app.models.lesson import Lesson
+from app.models.recording import Recording
 from app.models.student import Student
 from app.models.teacher import Teacher
 from app.services.video import FakeVideoService, get_video_service
@@ -144,6 +145,23 @@ def make_lesson(db_session):
         db_session.commit()
         db_session.refresh(lesson)
         return lesson
+
+    return _make
+
+
+@pytest.fixture
+def make_recording(db_session):
+    def _make(lesson, provider_recording_id="rec-1", status="ready", duration_seconds=300):
+        recording = Recording(
+            lesson_id=lesson.lesson_id,
+            provider_recording_id=provider_recording_id,
+            status=status,
+            duration_seconds=duration_seconds,
+        )
+        db_session.add(recording)
+        db_session.commit()
+        db_session.refresh(recording)
+        return recording
 
     return _make
 
