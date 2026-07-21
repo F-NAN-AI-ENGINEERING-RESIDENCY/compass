@@ -88,6 +88,18 @@ h3 {
   color: var(--color-text-on-dark);
 }
 
+/* Ghost pill — text-only, no border/background — for secondary actions that
+   shouldn't compete with a nearby primary pill (e.g. hero's "For educators"). */
+.btn-pill--ghost {
+  background: transparent;
+  color: var(--color-forest);
+  border: none;
+  padding: 0.75rem 1rem;
+}
+.btn-pill--ghost:hover {
+  background: var(--color-cream-dim);
+}
+
 /* Rounded-corner card, the other recurring shape in the spec (dashboard tiles,
    role-select cards, etc). */
 .card {
@@ -127,6 +139,141 @@ h3 {
   border-color: var(--color-forest);
 }
 
+/* Landing page (src/pages/LandingPage.jsx): hero and feature-strip grids
+   collapse to a single column below tablet width. */
+@media (max-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .landing-nav-links {
+    display: none !important;
+  }
+  .landing-nav {
+    padding: 14px 20px !important;
+  }
+}
+
+/* Landing-page animations: a gentle fade-up on first paint (staggered via
+   each element's inline animationDelay) plus small hover/pulse touches.
+   All kept subtle and short — this is chrome around the content, not the point. */
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.landing-fade-in {
+  animation: landing-fade-up 0.6s ease-out both;
+}
+
+@keyframes landing-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.landing-live-dot {
+  animation: landing-pulse 1.8s ease-in-out infinite;
+}
+
+.landing-dashboard-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.landing-dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(31, 58, 46, 0.14);
+}
+
+.landing-feature-col,
+.landing-feature-icon {
+  transition: transform 0.2s ease;
+}
+.landing-feature-col:hover {
+  transform: translateY(-2px);
+}
+.landing-feature-col:hover .landing-feature-icon {
+  transform: scale(1.1);
+}
+
+/* Reveal (src/components/Reveal.jsx): fades/slides a section in the first
+   time it scrolls into view, rather than animating (invisibly) on load like
+   the hero above the fold does. */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Slow ambient rotation on the hero's decorative rings — a small bit of life
+   behind the dashboard preview without drawing attention to itself. */
+@keyframes landing-orbit-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+.landing-orbit {
+  animation: landing-orbit-spin 90s linear infinite;
+}
+
+/* Numbered step / persona cards (LandingPage's "How it works" and "Built
+   for..." sections): the same hover-lift language used on the dashboard
+   preview and feature columns, so every card on the page behaves the same way. */
+.landing-step-card,
+.landing-persona-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.landing-step-card:hover,
+.landing-persona-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(31, 58, 46, 0.12);
+}
+
+/* A hairline separation between the nav and the page beneath it — the nav
+   sits on the same cream background as the hero, so without this it reads
+   as one flat block instead of a distinct bar. */
+.landing-nav {
+  box-shadow: 0 1px 0 rgba(31, 58, 46, 0.08);
+}
+
+/* Users who've asked for less motion get the end state immediately, no
+   animation/transition — this is decoration, never load-bearing for content. */
+@media (prefers-reduced-motion: reduce) {
+  .landing-fade-in,
+  .landing-live-dot,
+  .landing-orbit {
+    animation: none !important;
+  }
+  .landing-dashboard-card,
+  .landing-feature-col,
+  .landing-feature-icon,
+  .landing-step-card,
+  .landing-persona-card {
+    transition: none !important;
+  }
+  .reveal {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 /* Error message shown under a form when a request fails (bad credentials,
    duplicate account, etc). Clay from the confidence ramp instead of red,
    consistent with the spec's "red is never used" rule. */
@@ -135,3 +282,4 @@ h3 {
   font-size: 0.9rem;
   margin: 0 0 1rem;
 }
+

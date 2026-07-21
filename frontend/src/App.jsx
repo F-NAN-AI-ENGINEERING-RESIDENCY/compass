@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom' // core router p
 import { AuthProvider } from './auth/AuthContext.jsx'
 import { ProtectedRoute } from './auth/ProtectedRoute.jsx'
 import { Layout } from './components/Layout.jsx'
+import { LandingPage } from './pages/LandingPage.jsx'
+import { AboutPage } from './pages/AboutPage.jsx'
+import { ResearchPage } from './pages/ResearchPage.jsx'
 import { RoleSelectPage } from './pages/RoleSelectPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { SignupPage } from './pages/SignupPage.jsx'
@@ -21,12 +24,6 @@ import { TeacherSessionsHubPage } from './pages/TeacherSessionsHubPage.jsx'
 import { StudentDashboardPage } from './pages/StudentDashboardPage.jsx'
 import { TeacherInCallPage } from './pages/TeacherInCallPage.jsx'
 
-// Home page has no design yet and isn't one of Asia's assigned screens —
-// stays a placeholder until the team decides what it should be.
-function HomePage() {
-  return <h1>Compass</h1>
-}
-
 export default function App() {
   return (
     // BrowserRouter enables client-side routing (URL changes without full page reloads).
@@ -35,6 +32,13 @@ export default function App() {
           page — and ProtectedRoute's redirect logic — can read login state. */}
       <AuthProvider>
         <Routes>
+          {/* Public marketing page, reachable signed out or signed in. Has its
+              own nav (like role-select/login/signup below) so it deliberately
+              sits outside Layout instead of double-nav-ing with it. */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/research" element={<ResearchPage />} />
+
           {/* Role-select/login/signup each render their own full-bleed screen
               (with their own logo, no persistent nav) per the wireframe spec —
               they deliberately sit outside Layout so the top nav doesn't
@@ -57,8 +61,6 @@ export default function App() {
           {/* Everything else keeps the persistent top nav: Layout renders it
               once, then <Outlet/> swaps in whichever child route matches. */}
           <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-
             {/* Teacher-only routes: a signed-in student hitting these gets
                 bounced to /student instead of seeing a 403-riddled page. */}
             <Route element={<ProtectedRoute role="teacher" />}>
