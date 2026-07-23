@@ -9,6 +9,7 @@ from app.models.confusion_signal import ConfusionSignal
 from app.models.current_skill import CurrentSkill
 from app.models.enrollment import Enrollment
 from app.models.lesson import Lesson
+from app.models.material import Material
 from app.models.question import Question
 from app.models.question_cluster import QuestionCluster
 from app.models.recording import Recording
@@ -26,6 +27,7 @@ __all__ = [
     "CurrentSkill",
     "Enrollment",
     "Lesson",
+    "Material",
     "Question",
     "QuestionCluster",
     "Recording",

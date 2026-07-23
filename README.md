@@ -95,6 +95,16 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 | `PATCH /api/lessons/:lessonId` | Transition status: `scheduled → live → ended`. Going live provisions a video room; ending tears it down (deletes the Daily room, which force-disconnects any remaining participants) and closes the lesson's WebSocket connections. A background scheduler auto-ends `live` lessons the same way after `LESSON_INACTIVITY_TIMEOUT_MINUTES` (default 15) of no Daily participant activity, so an abandoned room doesn't sit open. |
 | `GET /api/lessons/:lessonId/video-token` | Join token for the lesson's video room. |
 
+#### Materials
+
+| Method & Path | Description |
+|---|---|
+| `POST /api/classes/:classId/materials` | Teacher adds a material under a free-text unit label; metadata only (name/unit), no file storage. |
+| `GET /api/classes/:classId/materials` | Lists active materials for the class, ordered by unit then position. |
+| `PATCH /api/materials/:materialId` | Teacher renames a material. |
+| `DELETE /api/materials/:materialId` | Soft-delete (`is_active = false`); no hard-delete endpoint. |
+| `PATCH /api/classes/:classId/materials/reorder` | Teacher reorders one unit's materials; body is `{ unit, materialIds }` with every active id in that unit, new order. `409` if the id list doesn't exactly match. |
+
 #### Confusion Signals (the "I'm lost" feature)
 
 | Method & Path | Description |
