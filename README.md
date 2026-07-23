@@ -101,7 +101,7 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 | Method & Path | Description |
 |---|---|
 | `POST /api/classes/:classId/materials` | Teacher adds a material under a free-text unit label; metadata only (name/unit), no file storage. |
-| `GET /api/classes/:classId/materials` | Lists active materials for the class, ordered by unit then position. |
+| `GET /api/classes/:classId/materials` | Lists active materials for the class, ordered by unit then position. Readable by the owning teacher and any student enrolled in the class. |
 | `PATCH /api/materials/:materialId` | Teacher renames a material. |
 | `DELETE /api/materials/:materialId` | Soft-delete (`is_active = false`); no hard-delete endpoint. |
 | `PATCH /api/classes/:classId/materials/reorder` | Teacher reorders one unit's materials; body is `{ unit, materialIds }` with every active id in that unit, new order. `409` if the id list doesn't exactly match. |
