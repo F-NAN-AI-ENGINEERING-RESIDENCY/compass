@@ -1,11 +1,16 @@
-// The Compass logomark: a compass rose — ring plus a classic two-tone
-// needle (one half solid, the other dimmed, the way a real compass needle
-// reads N vs. S) instead of the old plain center dot.
-// Built as inline SVG (not an image file) so it can inherit `color` via
-// `currentColor` and needs no separate asset to keep track of.
-// `size` controls both width and height; `color` defaults to inheriting
-// whatever text color is already active where the logo is placed.
-export function Logo({ size = 28, color = 'currentColor' }) {
+import { Link } from 'react-router-dom'
+
+// The Compass logomark: a compass rose with real dimension — the needle's
+// two faces are distinct solid fills (never one color at reduced opacity,
+// and never a gradient), like light catching two sides of a physical
+// needle, plus a small ochre pivot pin where a real compass needle turns.
+//
+// `color` is the primary tone (the ring + the needle's "lit" north face);
+// `shade` is the secondary tone for the needle's south face. Both default to
+// the forest ramp for the common case — logo on a cream background. Callers
+// on a dark forest background (the signed-in nav, the auth-screen panel)
+// pass on-dark tones for both instead, so the mark stays legible there too.
+export function Logo({ size = 28, color = 'var(--color-forest)', shade = 'var(--color-forest-dark)' }) {
   return (
     <svg
       width={size}
@@ -15,26 +20,32 @@ export function Logo({ size = 28, color = 'currentColor' }) {
       role="img"
       aria-label="Compass logo"
     >
-      {/* the outer ring */}
+      {/* outer ring */}
       <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5" />
-      {/* two-tone needle (a kite/diamond, not a clock hand): north point
-          solid, south point dimmed, the way a real compass needle reads. */}
+      {/* needle: north face solid `color`, south face solid `shade` — two
+          distinct fills, not one color at partial opacity, for real depth */}
       <path d="M12 4.2L15.2 12L12 12Z" fill={color} />
-      <path d="M12 19.8L8.8 12L12 12Z" fill={color} opacity="0.4" />
-      {/* center pin */}
-      <circle cx="12" cy="12" r="1.3" fill={color} />
+      <path d="M12 19.8L8.8 12L12 12Z" fill={shade} />
+      {/* ochre pivot pin */}
+      <circle cx="12" cy="12" r="1.6" fill="var(--color-ochre)" />
     </svg>
   )
 }
 
-// Logomark + wordmark together, as seen top-left on every screen in the spec.
-export function LogoWordmark({ color = 'currentColor' }) {
+// Logomark + wordmark together, as seen top-left on every screen in the
+// spec — a home link everywhere it appears, with a subtle hover scale (see
+// .logo-wordmark in index.css).
+export function LogoWordmark({ color = 'var(--color-forest)', shade = 'var(--color-forest-dark)' }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color }}>
-      <Logo color={color} />
-      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '1.1rem' }}>
+    <Link
+      to="/"
+      className="logo-wordmark"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color, textDecoration: 'none' }}
+    >
+      <Logo color={color} shade={shade} />
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.1rem', color }}>
         Compass
       </span>
-    </span>
+    </Link>
   )
 }

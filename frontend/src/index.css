@@ -274,6 +274,67 @@ h3 {
   }
 }
 
+/* Public marketing nav links (src/components/MarketingNav.jsx) — one shared
+   class so every text link (nav items + "Sign in") behaves identically: no
+   underline at rest, ink -> forest on hover, underline appears only on hover. */
+.public-nav-link {
+  color: var(--color-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.public-nav-link:hover {
+  color: var(--color-forest);
+  text-decoration: underline;
+}
+
+/* "Sign in" reads as slightly more actionable than the plain nav links (it's
+   already forest at rest, next to the primary "Get started" pill) — same
+   hover/transition treatment, without recoloring it to ink first. */
+.public-nav-signin {
+  color: var(--color-forest);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.public-nav-signin:hover {
+  color: var(--color-forest-dark);
+  text-decoration: underline;
+}
+
+/* Signed-in app nav items (src/components/AppNavItem.jsx), shared by every
+   teacher and student page via Layout.jsx. Idle text is on-dark (the header
+   is forest-green); hover and the active page both get the same treatment —
+   forest text sitting on its own cream-dim pill, not just a color swap on
+   the dark background. */
+.app-nav-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--color-text-on-dark);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.app-nav-item:hover,
+.app-nav-item--active {
+  color: var(--color-forest);
+  background: var(--color-cream-dim);
+}
+
+/* Logo + wordmark (src/components/Logo.jsx), used as a home link on every
+   screen — a subtle scale on hover signals it's clickable. */
+.logo-wordmark {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.logo-wordmark:hover {
+  transform: scale(1.03);
+}
+
 /* Error message shown under a form when a request fails (bad credentials,
    duplicate account, etc). Clay from the confidence ramp instead of red,
    consistent with the spec's "red is never used" rule. */
