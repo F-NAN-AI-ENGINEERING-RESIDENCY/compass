@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
-from app.routers import auth, classes, enrollments, lessons, signals
+from app.routers import auth, classes, enrollments, lessons, signals, tutor
 from app.websockets import dashboard_ws
 from app.websockets.manager import manager
 
@@ -43,6 +43,7 @@ app.include_router(classes.router)
 app.include_router(enrollments.router)
 app.include_router(lessons.router)
 app.include_router(signals.router)
+app.include_router(tutor.router)
 app.include_router(dashboard_ws.router)
 
 

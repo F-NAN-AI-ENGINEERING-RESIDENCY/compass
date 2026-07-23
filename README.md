@@ -107,6 +107,14 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 
 Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owner/not enrolled), and `404` (not found) as applicable, in addition to the success shape listed.
 
+#### AI Tutor
+
+| Method & Path | Description |
+|---|---|
+| `POST /api/tutor/message` | Student-only. Sends a message to the Socratic AI tutor; optionally pass `lessonId` to link the conversation to a lesson. Finds or creates the student's `tutor_sessions` row, persists both the student's message and the tutor's reply as `tutor_messages`, and returns `{ sessionId, reply }`. `404` if `lessonId` doesn't reference a real lesson. |
+
+This is the AI-tutor half of Sprint 3 only — question routing/clustering (`questions`, `question_clusters`) is a separate, later step and isn't wired to any endpoint yet.
+
 #### WebSocket Channel
 
 `WS /ws/lessons/:lessonId` — one channel per lesson; both the student's lesson view and the teacher's dashboard connect for the duration of a live lesson.
@@ -125,6 +133,8 @@ Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owne
 - The dashboard's per-signal entries and the PATCH response include the student's identity (`studentId`, `studentName`) to the teacher. The original contract's `{ signalId, createdAt, status }` shape predates a later, explicit team decision that the teacher always sees who sent a signal — anonymity is from classmates only, never from the teacher.
 - Classes/Enrollments/Lessons/Auth aren't in the original API Contract section at all (it only documented the signals/dashboard/WS slice) — they're included above since they're real and load-bearing for the setup flow.
 - `skill.updated` (documented in the original WS contract) isn't fired by anything yet, since nothing writes skill data — see the skill-standing note earlier in this README.
+- The AI tutor's system prompt tells the model to redirect a student to a teacher/counselor/trusted adult if they express distress, but no mechanism notifies a teacher when that happens — it's a silent client-side redirect only. This needs a product decision (a dashboard signal? a separate alert flow?) before it's built; intentionally parked, not an oversight.
+- The AI tutor currently calls Gemini (`GeminiTutorService`), not Claude/Anthropic as originally planned for Sprint 3 — a temporary swap pending Claude API token approval. The `TutorService` abstraction is provider-agnostic, so swapping in an `AnthropicTutorService` later is a self-contained change.
 
 ### Schema Design
 
@@ -146,7 +156,11 @@ Reflects the actual current tables; differences from the original schema draft a
 
 **`sessions`** — `session_id` PK, `token` (unique, the bearer credential), `user_id` (polymorphic — a student or teacher id depending on `role`), `role`, `created_at`, `expires_at`.
 
-**Modeled, not yet wired to any endpoint** (support the deferred AI tutor / question-clustering features): `tutor_sessions`, `tutor_messages`, `questions`, `question_clusters`.
+**`tutor_sessions`** — `session_id` PK, `student_id` FK (nullable, `SET NULL` on delete), `lesson_id` FK (nullable, `SET NULL` on delete), `started_at`.
+
+**`tutor_messages`** — `message_id` PK, `session_id` FK (`CASCADE` on delete), `sender` (`student | ai`), `message_text`, `created_at`.
+
+**Modeled, not yet wired to any endpoint** (support the deferred question-clustering feature): `questions`, `question_clusters`.
 
 **Architectural notes carried over from the original design:**
 - There is no `dashboard` table — it's a live query joining `confusion_signals` and `current_skills`, filtered by the active lesson.
