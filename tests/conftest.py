@@ -4,6 +4,10 @@ import os
 # at import time, and a real env var here takes priority over .env — this is
 # what keeps the test suite off the dev database.
 os.environ["DATABASE_URL"] = "postgresql+psycopg2://compass_user:compass_password@localhost:5432/compass_test_db"
+# A real interval-based scheduler thread starting/stopping around every
+# single TestClient-using test would be wasteful and a source of flakiness.
+# Tests exercise the inactivity check directly via lesson_service instead.
+os.environ["ENABLE_LESSON_SCHEDULER"] = "false"
 
 import pytest
 from alembic import command

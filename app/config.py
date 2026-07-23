@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     daily_webhook_secret: Optional[str] = None
     openai_api_key: Optional[str] = None
 
+    # How long a "live" lesson may sit with no Daily participant activity
+    # before the background scheduler auto-ends it.
+    lesson_inactivity_timeout_minutes: int = 15
+    # Off in tests (see conftest.py): a real interval-based scheduler thread
+    # starting/stopping around every single TestClient-using test would be
+    # both wasteful and a source of flakiness, and tests exercise the
+    # inactivity check directly via lesson_service instead.
+    enable_lesson_scheduler: bool = True
+
     # App
     environment: str = "development"
     cors_origins: str = "http://localhost:3000"

@@ -25,6 +25,11 @@ class Lesson(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     # Set by the same lifecycle endpoint when status transitions to "ended".
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # Baselined to started_at when a lesson goes live, then bumped on every
+    # Daily participant-joined/participant-left webhook for its room. Used
+    # only to detect an abandoned "live" room for auto-end; never read once
+    # a lesson is ended.
+    last_activity_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String, nullable=False, default="scheduled", server_default="scheduled")
     # Populated only once the lesson goes live (room is created on-demand, not
     # at scheduling time). Vendor-neutral: video_provider names which backend

@@ -97,6 +97,7 @@ def test_start_then_end_lesson(client, db_session, make_teacher, make_class, mak
     db_session.refresh(lesson)
     assert lesson.video_room_id == f"fake-room-{lesson.lesson_id}"
     assert lesson.video_provider == "fake"
+    assert lesson.last_activity_at == lesson.started_at
 
     ended_response = client.patch(f"/api/lessons/{lesson.lesson_id}", json={"status": "ended"}, headers=headers)
     assert ended_response.status_code == 200, ended_response.text

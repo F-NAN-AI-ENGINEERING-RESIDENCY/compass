@@ -2,18 +2,22 @@ import base64
 import hashlib
 import hmac
 import json
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.dependencies import get_db
-from app.services import recording_service
+from app.services import lesson_service, recording_service
 from app.services.transcript_service import run_transcription_job
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
 RECORDING_READY_EVENT = "recording.ready-to-download"
+# Participant events use payload.room; recording events use payload.room_name
+# — Daily's own webhook payload shapes are inconsistent across event types.
+PARTICIPANT_ACTIVITY_EVENTS = {"participant.joined", "participant.left"}
 
 
 def _verify_signature(raw_body: bytes, timestamp: str, signature: str) -> bool:
@@ -49,14 +53,21 @@ async def daily_webhook(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook signature")
 
     event = json.loads(raw_body)
+    event_type = event.get("type")
+    payload = event.get("payload") or {}
+
+    if event_type == RECORDING_READY_EVENT:
+        recording, created = recording_service.upsert_recording_from_webhook(db, payload)
+        # Only a first insert enqueues the job — the idempotent-upsert short
+        # circuit above must never re-trigger transcription on a replay.
+        if created and recording is not None:
+            background_tasks.add_task(run_transcription_job, recording.recording_id)
+        return {"ok": True}
+
+    if event_type in PARTICIPANT_ACTIVITY_EVENTS:
+        lesson_service.record_participant_activity(db, payload.get("room"), datetime.now(timezone.utc))
+        return {"ok": True}
+
     # Unknown event types are 200'd and ignored rather than rejected, so Daily
     # doesn't retry an event we were never going to act on.
-    if event.get("type") != RECORDING_READY_EVENT:
-        return {"ignored": True}
-
-    recording, created = recording_service.upsert_recording_from_webhook(db, event.get("payload") or {})
-    # Only a first insert enqueues the job — the idempotent-upsert short
-    # circuit above must never re-trigger transcription on a replay.
-    if created and recording is not None:
-        background_tasks.add_task(run_transcription_job, recording.recording_id)
-    return {"ok": True}
+    return {"ignored": True}
