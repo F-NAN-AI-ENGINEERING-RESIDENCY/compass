@@ -16,7 +16,7 @@ import { StudentLessonPage } from './pages/StudentLessonPage.jsx'
 import { WellbeingPage } from './pages/WellbeingPage.jsx'
 import { StudentSettingsPage } from './pages/StudentSettingsPage.jsx'
 import { TeacherSettingsPage } from './pages/TeacherSettingsPage.jsx'
-import { BadgeBuilderPage } from './pages/BadgeBuilderPage.jsx'
+import { CompanionBuilderPage } from './pages/CompanionBuilderPage.jsx'
 import { ScoutPage } from './pages/ScoutPage.jsx'
 import { MaterialsPage } from './pages/MaterialsPage.jsx'
 import { RecordingsPage } from './pages/RecordingsPage.jsx'
@@ -78,7 +78,7 @@ export default function App() {
               <Route path="/student/dashboard" element={<StudentDashboardPage />} />
               <Route path="/wellbeing" element={<WellbeingPage />} />
               <Route path="/student/settings" element={<StudentSettingsPage />} />
-              <Route path="/badge" element={<BadgeBuilderPage />} />
+              <Route path="/companion" element={<CompanionBuilderPage />} />
               <Route path="/scout" element={<ScoutPage />} />
             </Route>
           </Route>

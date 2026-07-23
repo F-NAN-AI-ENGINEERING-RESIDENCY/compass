@@ -25,6 +25,7 @@
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif; /* headlines */
   --font-body: 'Albert Sans', system-ui, sans-serif; /* body text, buttons, form fields */
   --font-mono: 'Spline Sans Mono', ui-monospace, monospace; /* data/mono contexts, e.g. join codes */
+  --font-journal: 'Fraunces', Georgia, serif; /* the ONE exception to display/body — scoped strictly to the wellbeing journal's writing surface, never used elsewhere */
 
   --radius-pill: 999px; /* fully-rounded buttons, used throughout the spec */
   --radius-card: 16px; /* rounded-corner cards */
@@ -272,6 +273,169 @@ h3 {
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* Companion builder swatches (src/pages/CompanionBuilderPage.jsx). */
+.companion-swatch {
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.companion-swatch:hover:not([aria-disabled='true']) {
+  border-color: var(--color-forest);
+  transform: translateY(-2px);
+}
+
+/* Scout chat (src/pages/ScoutPage.jsx). */
+.scout-quick-action {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--color-forest);
+  background: transparent;
+  border: 1.5px solid var(--color-forest);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.scout-quick-action:hover {
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+}
+
+.scout-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1.5px solid var(--color-cream-dim);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
+  transition: border-color 0.15s ease;
+}
+.scout-input-bar:focus-within {
+  border-color: var(--color-forest);
+}
+.scout-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--color-ink);
+}
+.scout-send-button {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-forest);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.scout-send-button:hover:not(:disabled) {
+  background: var(--color-forest-dark);
+  transform: scale(1.05);
+}
+.scout-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Shared mood picker (src/components/MoodPicker.jsx). */
+.mood-picker-option {
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.mood-picker-option:hover {
+  background: var(--color-cream-dim);
+  transform: scale(1.08);
+}
+
+/* Wellbeing journal writing surface (src/components/wellbeing/JournalSection.jsx).
+   Fraunces + ruled horizontal lines behind the text — the one place in the
+   app that isn't Albert Sans/Bricolage. Line-height and the ruled-line
+   spacing below are the same 28px so the rule sits right under each line
+   of text. */
+.journal-textarea {
+  width: 100%;
+  font-family: var(--font-journal);
+  font-size: 1.05rem;
+  line-height: 28px;
+  color: var(--color-ink);
+  background-color: var(--color-cream);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    var(--color-cream-dim) 27px,
+    var(--color-cream-dim) 28px
+  );
+  border: 1.5px solid var(--color-cream-dim);
+  border-radius: 10px;
+  padding: 4px 1rem 0;
+  resize: vertical;
+}
+.journal-textarea:focus {
+  outline: none;
+  border-color: var(--color-forest);
+}
+.journal-entry-text {
+  font-family: var(--font-journal);
+  color: var(--color-ink);
+}
+
+/* Meditation duration picker (src/components/wellbeing/MeditationSection.jsx). */
+.meditation-duration {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-text-on-dark);
+  background: rgba(245, 241, 230, 0.12);
+  border: 1.5px solid rgba(245, 241, 230, 0.35);
+  border-radius: var(--radius-pill);
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.meditation-duration:hover:not(:disabled) {
+  background: rgba(245, 241, 230, 0.22);
+}
+.meditation-duration[aria-pressed='true'] {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  border-color: var(--color-cream);
+}
+.meditation-duration:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Wellbeing tab switcher (src/pages/WellbeingPage.jsx). */
+.wellbeing-tab {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-ink-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.wellbeing-tab:hover {
+  color: var(--color-forest);
+}
+.wellbeing-tab[aria-selected='true'] {
+  color: var(--color-forest);
+  border-bottom-color: var(--color-forest);
 }
 
 /* Error message shown under a form when a request fails (bad credentials,
