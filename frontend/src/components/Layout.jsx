@@ -48,8 +48,8 @@ export function Layout() {
                   <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
                     Wellbeing
                   </Link>
-                  <Link to="/badge" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Badge
+                  <Link to="/companion" style={{ color: 'var(--color-text-on-dark)' }}>
+                    Companion
                   </Link>
                 </>
               )}
