@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth.google_oauth import GoogleTokenError, verify_google_id_token
 from app.auth.security import create_session
 from app.dependencies import CurrentUser, get_current_user, get_db
 from app.schemas.auth import (
+    GoogleAuthRequest,
     LoginRequest,
     MessageResponse,
     ProfileResponse,
@@ -44,6 +46,23 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         user = auth_service.authenticate_user(db, payload.role, payload.username, payload.password)
     except auth_service.InvalidCredentialsError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+    user_id = auth_service.user_id_of(user)
+    session = create_session(db, user_id=user_id, role=payload.role.value)
+    return TokenResponse(access_token=session.token, role=payload.role, user_id=user_id)
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    try:
+        identity = verify_google_id_token(payload.id_token)
+    except GoogleTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+    try:
+        user = auth_service.authenticate_or_register_with_google(
+            db, payload.role, identity.sub, identity.email, identity.name
+        )
+    except auth_service.DuplicateAccountError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     user_id = auth_service.user_id_of(user)
     session = create_session(db, user_id=user_id, role=payload.role.value)
     return TokenResponse(access_token=session.token, role=payload.role, user_id=user_id)
