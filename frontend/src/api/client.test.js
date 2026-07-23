@@ -44,12 +44,17 @@ describe('apiRequest', () => {
     expect(result).toBeNull()
   })
 
-  it("throws with the backend's detail message on a non-ok response", async () => {
+  it("throws with the backend's message field on a non-ok response (the real current contract)", async () => {
+    mockFetchOnce({ status: 401, body: { message: 'Incorrect username or password' } })
+    await expect(apiRequest('/api/auth/login')).rejects.toThrow('Incorrect username or password')
+  })
+
+  it('falls back to .detail if a response ever uses the framework-default shape instead', async () => {
     mockFetchOnce({ status: 403, body: { detail: 'You are not enrolled in this class' } })
     await expect(apiRequest('/api/classes/1')).rejects.toThrow('You are not enrolled in this class')
   })
 
-  it('falls back to a generic message when the error body has no detail field', async () => {
+  it('falls back to a generic message when the error body has neither field', async () => {
     mockFetchOnce({ status: 500, body: {} })
     await expect(apiRequest('/api/classes/1')).rejects.toThrow('Request failed with status 500')
   })
