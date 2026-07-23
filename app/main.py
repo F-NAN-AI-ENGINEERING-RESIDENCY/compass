@@ -17,8 +17,10 @@ async def lifespan(app: FastAPI):
     # from service code on FastAPI's sync threadpool) can schedule sends onto
     # it via run_coroutine_threadsafe.
     manager.bind_loop(asyncio.get_running_loop())
+    scheduler = start_scheduler() if settings.enable_lesson_scheduler else None
     yield
-    # Shutdown: nothing to do yet.
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
 
 
 app = FastAPI(
@@ -44,6 +46,8 @@ app.include_router(enrollments.router)
 app.include_router(lessons.router)
 app.include_router(materials.router)
 app.include_router(signals.router)
+app.include_router(transcripts.router)
+app.include_router(webhooks.router)
 app.include_router(dashboard_ws.router)
 
 
