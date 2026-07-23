@@ -5,6 +5,8 @@ import { Layout } from './components/Layout.jsx'
 import { RoleSelectPage } from './pages/RoleSelectPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { SignupPage } from './pages/SignupPage.jsx'
+import { StudentSignup } from './pages/StudentSignup.jsx'
+import { StudentLogin } from './pages/StudentLogin.jsx'
 import { TeacherDashboardPage } from './pages/TeacherDashboardPage.jsx'
 import { TeacherLessonDashboardPage } from './pages/TeacherLessonDashboardPage.jsx'
 import { StudentHomePage } from './pages/StudentHomePage.jsx'
@@ -42,6 +44,8 @@ export default function App() {
           <Route path="/role-select" element={<RoleSelectPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/student/signup" element={<StudentSignup />} />
+          <Route path="/student/login" element={<StudentLogin />} />
 
           {/* Pre-join and in-lesson screens are also full-bleed/no-nav — an
               immersive "in a call" context per the spec, same reasoning as
