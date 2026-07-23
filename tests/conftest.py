@@ -21,6 +21,7 @@ from app.models.lesson import Lesson
 from app.models.recording import Recording
 from app.models.student import Student
 from app.models.teacher import Teacher
+from app.models.transcript_chunk import TranscriptChunk
 from app.services.video import FakeVideoService, get_video_service
 
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
@@ -162,6 +163,24 @@ def make_recording(db_session):
         db_session.commit()
         db_session.refresh(recording)
         return recording
+
+    return _make
+
+
+@pytest.fixture
+def make_transcript_chunk(db_session):
+    def _make(lesson, recording, text="Hello class", start_offset_seconds=0.0, end_offset_seconds=5.0):
+        chunk = TranscriptChunk(
+            lesson_id=lesson.lesson_id,
+            recording_id=recording.recording_id,
+            text=text,
+            start_offset_seconds=start_offset_seconds,
+            end_offset_seconds=end_offset_seconds,
+        )
+        db_session.add(chunk)
+        db_session.commit()
+        db_session.refresh(chunk)
+        return chunk
 
     return _make
 
