@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -9,6 +10,16 @@ if TYPE_CHECKING:
     from app.models.lesson import Lesson
 
 DAILY_API_BASE = "https://api.daily.co/v1"
+
+# How far past room creation a Daily room's access expires. Lessons have no
+# fixed duration on the model, so this is a flat buffer rather than something
+# derived from scheduled_at.
+ROOM_EXPIRY_BUFFER_SECONDS = 4 * 60 * 60
+
+
+class VideoProvisioningError(Exception):
+    """Raised when the video vendor fails to provision a room. Callers should
+    surface this as a 502 and leave the lesson's status untouched."""
 
 
 class VideoService(ABC):
@@ -22,7 +33,11 @@ class VideoService(ABC):
 
     @abstractmethod
     def create_join_token(self, room_id: str, user_id: int, role: str) -> str:
-        """Returns a join token/URL for a specific user connecting to room_id."""
+        """Returns a join token for a specific user connecting to room_id."""
+
+    @abstractmethod
+    def get_room_url(self, room_id: str) -> str:
+        """Returns the joinable URL for an existing room."""
 
 
 class DailyVideoService(VideoService):
@@ -39,8 +54,21 @@ class DailyVideoService(VideoService):
         )
 
     def create_room(self, lesson: "Lesson") -> tuple:
-        response = self._client.post("/rooms", json={"properties": {"enable_chat": False}})
-        response.raise_for_status()
+        try:
+            response = self._client.post(
+                "/rooms",
+                json={
+                    "privacy": "private",
+                    "properties": {
+                        "enable_chat": False,
+                        "enable_recording": "cloud",
+                        "exp": int(time.time()) + ROOM_EXPIRY_BUFFER_SECONDS,
+                    },
+                },
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise VideoProvisioningError(f"Daily room creation failed: {exc}") from exc
         room_id = response.json()["name"]
         return room_id, "daily"
 
@@ -64,10 +92,15 @@ class DailyVideoService(VideoService):
         response.raise_for_status()
         return response.json()["token"]
 
+    def get_room_url(self, room_id: str) -> str:
+        response = self._client.get(f"/rooms/{room_id}")
+        response.raise_for_status()
+        return response.json()["url"]
+
 
 class FakeVideoService(VideoService):
-    """Deterministic, network-free stand-in. Used automatically whenever
-    DAILY_API_KEY is unset, and forced in tests regardless of config."""
+    """Deterministic, network-free stand-in. Used whenever VIDEO_PROVIDER is
+    "stub" (the default), and forced in tests regardless of config."""
 
     def create_room(self, lesson: "Lesson") -> tuple:
         return f"fake-room-{lesson.lesson_id}", "fake"
@@ -78,6 +111,9 @@ class FakeVideoService(VideoService):
     def create_join_token(self, room_id: str, user_id: int, role: str) -> str:
         return f"fake-token-{room_id}-{user_id}-{role}"
 
+    def get_room_url(self, room_id: str) -> str:
+        return f"https://fake.daily.co/{room_id}"
+
 
 _video_service = None
 
@@ -85,8 +121,13 @@ _video_service = None
 def get_video_service() -> VideoService:
     """FastAPI dependency. Override with `app.dependency_overrides[get_video_service]`
     in tests for an extra guarantee against network calls, on top of the
-    DAILY_API_KEY-unset default below."""
+    VIDEO_PROVIDER=stub default below."""
     global _video_service
     if _video_service is None:
-        _video_service = DailyVideoService(settings.daily_api_key) if settings.daily_api_key else FakeVideoService()
+        if settings.video_provider == "daily":
+            if not settings.daily_api_key:
+                raise RuntimeError("VIDEO_PROVIDER=daily requires DAILY_API_KEY to be set")
+            _video_service = DailyVideoService(settings.daily_api_key)
+        else:
+            _video_service = FakeVideoService()
     return _video_service

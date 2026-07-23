@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -7,6 +8,8 @@ from app.models.enrollment import Enrollment
 from app.models.lesson import Lesson
 from app.services.video import VideoService
 from app.websockets.broadcaster import broadcast, broadcast_and_close
+
+logger = logging.getLogger(__name__)
 
 _VALID_TRANSITIONS = {
     "scheduled": {"live"},
@@ -83,7 +86,14 @@ def transition_lesson_status(db: Session, lesson: Lesson, new_status: str, video
         broadcast(lesson.lesson_id, "lesson.started", {"lessonId": lesson.lesson_id, "status": lesson.status})
     elif new_status == "ended":
         if lesson.video_room_id:
-            video_service.delete_room(lesson.video_room_id)
+            try:
+                video_service.delete_room(lesson.video_room_id)
+            except Exception:
+                logger.exception(
+                    "Failed to tear down video room %s for lesson %s; continuing to end the lesson",
+                    lesson.video_room_id,
+                    lesson.lesson_id,
+                )
         lesson.ended_at = datetime.now(timezone.utc)
         lesson.status = new_status
         db.commit()
@@ -97,7 +107,8 @@ def transition_lesson_status(db: Session, lesson: Lesson, new_status: str, video
 
 def get_video_token_for_user(
     db: Session, lesson: Lesson, user_id: int, role: str, video_service: VideoService
-) -> str:
+) -> tuple:
+    """Returns (token, room_url) for a user joining a live lesson's room."""
     if role == "teacher":
         assert_teacher_owns_lesson(lesson, user_id)
     else:
@@ -106,4 +117,6 @@ def get_video_token_for_user(
     if lesson.status != "live" or not lesson.video_room_id:
         raise LessonNotLiveError("Lesson is not live")
 
-    return video_service.create_join_token(lesson.video_room_id, user_id, role)
+    token = video_service.create_join_token(lesson.video_room_id, user_id, role)
+    room_url = video_service.get_room_url(lesson.video_room_id)
+    return token, room_url

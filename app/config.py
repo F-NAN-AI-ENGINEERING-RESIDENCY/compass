@@ -15,10 +15,14 @@ class Settings(BaseSettings):
     # Auth
     session_expire_hours: int = 24
 
-    # Video (Daily.co). Unset in local dev/tests on purpose: app.services.video
-    # falls back to FakeVideoService whenever this is blank, so no one needs a
-    # real Daily account to run the app or the test suite.
+    # Video (Daily.co) + transcription (OpenAI Whisper). Provider selection is
+    # config-driven and defaults to the network-free stub so no one needs real
+    # vendor credentials to run the app or the test suite.
+    video_provider: str = "stub"
+    transcription_provider: str = "stub"
     daily_api_key: Optional[str] = None
+    daily_webhook_secret: Optional[str] = None
+    openai_api_key: Optional[str] = None
 
     # App
     environment: str = "development"
