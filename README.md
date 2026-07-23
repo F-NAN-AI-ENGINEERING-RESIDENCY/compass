@@ -72,6 +72,7 @@ All endpoints below reflect what's actually implemented today; see "Known deviat
 | `POST /api/auth/logout` | Invalidate the current session token. |
 | `GET /api/auth/me` | Fetch the authenticated user's profile. |
 | `PATCH /api/auth/me` | Update name/email. |
+| `POST /api/auth/google` | "Continue with Google": verifies a Google ID token server-side, then logs into an existing account (matched by `googleSub`, or linked by verified email if a password account already exists) or creates a new one. `role` (student\|teacher) is required on every call — never inferred from Google data, same as the existing role-select step. Returns the same `TokenResponse` shape as `POST /api/auth/login`. |
 
 #### Classes & Enrollments (setup flow)
 
@@ -138,6 +139,7 @@ Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owne
 - `skill.updated` (documented in the original WS contract) isn't fired by anything yet, since nothing writes skill data — see the skill-standing note earlier in this README.
 - Transcription runs as a synchronous FastAPI `BackgroundTask` (a deliberate capstone-scale choice over a real task queue), triggered by the Daily recording webhook. Known gap: a process crash/restart mid-job leaves that recording's `status` stuck at `transcribing` — the job's own exception handling only covers in-process failures, not restarts, and no reconciliation job exists to find and retry stuck recordings.
 - The inactivity auto-end scheduler (APScheduler, in-process) checks every 60 seconds and relies on `lessons.last_activity_at`, which is bumped only by Daily's `participant.joined`/`participant.left` webhooks (plus a baseline set when a lesson goes live). If the Daily webhook is ever misconfigured to not send those two event types, a genuinely-abandoned room won't auto-end. Also in-process only: horizontally scaling to multiple API instances would need this moved to a single shared job (e.g. via a lock), not one scheduler per instance.
+- `POST /api/auth/google` design decision beyond the original ask, flagging explicitly: if the verified Google email matches an existing *password* account (same role), that account is linked (its `googleSub` gets set) and the sign-in logs into it, rather than failing on the `email` unique constraint or silently creating a duplicate. Only trusts Google's email for this if the token's `email_verified` claim is `true`. `googleSub` is scoped per-role (students/teachers tables each have their own unique constraint) — the same Google account can independently become a student account and a teacher account, mirroring how username/email are already scoped per-role rather than globally unique across both tables.
 
 ### Schema Design
 

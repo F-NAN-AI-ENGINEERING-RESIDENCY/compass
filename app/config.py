@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     daily_webhook_secret: Optional[str] = None
     openai_api_key: Optional[str] = None
 
+    # "Continue with Google": the OAuth client id ID tokens must be issued
+    # for (verified as the `aud` claim) — required before POST /api/auth/google
+    # can accept a real token; unset by default so tests/local dev never
+    # silently accept a token meant for someone else's client.
+    google_oauth_client_id: Optional[str] = None
+
     # How long a "live" lesson may sit with no Daily participant activity
     # before the background scheduler auto-ends it.
     lesson_inactivity_timeout_minutes: int = 15
