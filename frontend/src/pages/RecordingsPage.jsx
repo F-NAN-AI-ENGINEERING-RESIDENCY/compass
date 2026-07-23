@@ -1,101 +1,171 @@
 import { useState } from 'react'
+import { listRecordings, getAccessLink, getTranscript } from '../api/recordings.js'
 
-// Static example data — there's no recording/transcript backend at all
-// (no video recording infra, no storage), so this whole screen is a visual
-// mock of the list+detail pattern rather than real data.
-const MOCK_RECORDINGS = [
-  {
-    id: 1,
-    title: 'Period 3 Algebra — Solving Linear Equations',
-    date: '2026-07-07',
-    durationMin: 42,
-    // Spike positions as a percentage across the recording, where "I'm lost" signals clustered.
-    spikes: [18, 52, 71],
-  },
-  {
-    id: 2,
-    title: 'Period 3 Algebra — Fractions Review',
-    date: '2026-07-03',
-    durationMin: 38,
-    spikes: [30],
-  },
-]
-
-// Wireframe spec screen 15 ("Recordings & transcripts") — "jump straight to
-// the confusion spikes." Mocked end to end: no recording/transcript backend
-// exists, so there's nothing real to fetch or play.
+// Wireframe spec screen 15 ("Recordings & transcripts"). Real backend now
+// exists (Noboni's recording/transcription work) — no more mocked data.
+//
+// Two real gaps versus the original spec, worth knowing about rather than
+// faking around:
+// - No "list all my recordings" endpoint exists, only per-lesson
+//   (GET /api/lessons/:id/recordings) — same "enter a lesson id" shortcut
+//   used on the Sessions hub and teacher dashboard, for the same reason.
+// - The spec's "jump straight to the confusion spikes" scrubber needed a way
+//   to correlate signal timestamps with a recording's timeline. No endpoint
+//   returns that (the dashboard endpoint only surfaces currently-open
+//   signals, not a full historical list for review purposes), so the spike
+//   markers from the old mocked version are gone rather than faked — the
+//   transcript below is real, the spike-jump feature just isn't built yet.
 export function RecordingsPage() {
-  const [selectedId, setSelectedId] = useState(MOCK_RECORDINGS[0].id)
-  const selected = MOCK_RECORDINGS.find((r) => r.id === selectedId)
+  const [lessonIdInput, setLessonIdInput] = useState('')
+  const [lessonId, setLessonId] = useState(null)
+  const [recordings, setRecordings] = useState([])
+  const [transcript, setTranscript] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+  const [selectedRecordingId, setSelectedRecordingId] = useState(null)
+  const [accessLink, setAccessLink] = useState(null)
+  const [linkError, setLinkError] = useState(null)
+  const [isLoadingLink, setIsLoadingLink] = useState(false)
+
+  async function handleLoadLesson(event) {
+    event.preventDefault()
+    const id = lessonIdInput.trim()
+    if (!id) return
+    setLoadError(null)
+    setIsLoading(true)
+    setAccessLink(null)
+    setSelectedRecordingId(null)
+    try {
+      // Both real, both scoped to this one lesson.
+      const [recordingList, transcriptChunks] = await Promise.all([listRecordings(id), getTranscript(id)])
+      setLessonId(id)
+      setRecordings(recordingList)
+      setTranscript(transcriptChunks)
+    } catch (err) {
+      setLoadError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleSelectRecording(recordingId) {
+    setSelectedRecordingId(recordingId)
+    setAccessLink(null)
+    setLinkError(null)
+    setIsLoadingLink(true)
+    try {
+      // Fetched fresh on selection, not cached — see the file-level note above.
+      const { accessLink: link } = await getAccessLink(recordingId)
+      setAccessLink(link)
+    } catch (err) {
+      setLinkError(err.message)
+    } finally {
+      setIsLoadingLink(false)
+    }
+  }
 
   return (
     <div style={{ maxWidth: '820px', margin: '0 auto', padding: '2rem 1.5rem' }}>
       <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Recordings</h1>
       <p style={{ fontSize: '0.85rem', color: 'var(--color-ink-muted)', marginBottom: '1.5rem' }}>
-        Mocked — no recording/transcript backend exists yet, so these are example entries, not
-        real lessons.
+        There's no "list all my recordings" endpoint yet — enter a lesson ID to see its recordings
+        and transcript.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem' }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {MOCK_RECORDINGS.map((recording) => (
-            <li key={recording.id} style={{ marginBottom: '0.75rem' }}>
-              <button
-                onClick={() => setSelectedId(recording.id)}
-                className="card"
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  border: recording.id === selectedId ? '2px solid var(--color-forest)' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{recording.title}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
-                  {recording.date} · {recording.durationMin} min
-                </div>
-              </button>
-            </li>
-          ))}
-        </ul>
+      <form onSubmit={handleLoadLesson} style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem' }}>
+        <input
+          type="number"
+          className="text-input"
+          placeholder="Lesson ID"
+          value={lessonIdInput}
+          onChange={(event) => setLessonIdInput(event.target.value)}
+          style={{ width: '8rem' }}
+        />
+        <button type="submit" className="btn-pill btn-pill--primary" disabled={isLoading}>
+          {isLoading ? 'Loading…' : 'Load lesson'}
+        </button>
+      </form>
 
-        {selected && (
-          <div className="card">
-            <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{selected.title}</h2>
+      {loadError && <p className="error-text">{loadError}</p>}
 
-            {/* Scrubber with spike markers — a plain bar with positioned dots, not
-                a real seekable player, since there's no actual video to play. */}
-            <div style={{ position: 'relative', height: '8px', background: 'var(--color-cream-dim)', borderRadius: '4px', marginBottom: '0.5rem' }}>
-              {selected.spikes.map((position) => (
-                <button
-                  key={position}
-                  title={`Jump to spike at ${Math.round((position / 100) * selected.durationMin)}m`}
-                  style={{
-                    position: 'absolute',
-                    left: `${position}%`,
-                    top: '-4px',
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    background: 'var(--color-clay)',
-                    border: '2px solid white',
-                    cursor: 'pointer',
-                  }}
-                />
-              ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-ink-muted)', marginBottom: '1.5rem' }}>
-              <span>0:00</span>
-              <span>{selected.durationMin}:00</span>
-            </div>
-
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-ink-muted)' }}>
-              {selected.spikes.length} confusion spike{selected.spikes.length === 1 ? '' : 's'} detected —
-              click a marker above to jump to it once real playback exists.
-            </p>
+      {lessonId && (
+        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.5rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1rem', marginBottom: '0.75rem' }}>Lesson #{lessonId}</h2>
+            {recordings.length === 0 ? (
+              <p style={{ color: 'var(--color-ink-muted)', fontSize: '0.9rem' }}>No recordings for this lesson.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {recordings.map((recording) => (
+                  <li key={recording.recordingId} style={{ marginBottom: '0.75rem' }}>
+                    <button
+                      onClick={() => handleSelectRecording(recording.recordingId)}
+                      className="card"
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        border:
+                          recording.recordingId === selectedRecordingId
+                            ? '2px solid var(--color-forest)'
+                            : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>Recording #{recording.recordingId}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
+                        {recording.status}
+                        {recording.durationSeconds != null && ` · ${Math.round(recording.durationSeconds / 60)} min`}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
-      </div>
+
+          <div className="card">
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>
+              {selectedRecordingId ? `Recording #${selectedRecordingId}` : 'Select a recording'}
+            </h2>
+
+            {selectedRecordingId && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                {isLoadingLink ? (
+                  <p style={{ color: 'var(--color-ink-muted)', fontSize: '0.9rem' }}>Getting access link…</p>
+                ) : linkError ? (
+                  <p className="error-text">{linkError}</p>
+                ) : accessLink ? (
+                  <a href={accessLink} target="_blank" rel="noreferrer" className="btn-pill btn-pill--primary" style={{ textDecoration: 'none', display: 'inline-block' }}>
+                    Open recording ↗
+                  </a>
+                ) : null}
+              </div>
+            )}
+
+            <h3 style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)', marginBottom: '0.5rem' }}>Transcript</h3>
+            {transcript.length === 0 ? (
+              <p style={{ color: 'var(--color-ink-muted)', fontSize: '0.9rem' }}>No transcript for this lesson.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '360px', overflowY: 'auto' }}>
+                {transcript.map((chunk) => (
+                  <li key={chunk.chunkId} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--color-cream-dim)' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-ink-muted)', marginRight: '0.75rem' }}>
+                      {formatTimestamp(chunk.startOffsetSeconds)}
+                    </span>
+                    {chunk.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function formatTimestamp(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
