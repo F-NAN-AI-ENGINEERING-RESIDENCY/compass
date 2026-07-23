@@ -17,6 +17,23 @@ class _FailingVideoService:
         raise AssertionError("should not be called")
 
 
+class _TeardownFailingVideoService:
+    """Provisions rooms normally but fails to tear them down, so tests can
+    verify a Daily outage on end-of-lesson never leaves a lesson stuck live."""
+
+    def create_room(self, lesson):
+        return f"fake-room-{lesson.lesson_id}", "fake"
+
+    def delete_room(self, room_id):
+        raise RuntimeError("Daily is down")
+
+    def create_join_token(self, room_id, user_id, role):
+        return f"fake-token-{room_id}-{user_id}-{role}"
+
+    def get_room_url(self, room_id):
+        return f"https://fake.daily.co/{room_id}"
+
+
 def test_create_lesson(client, make_teacher, make_class):
     teacher = make_teacher()
     class_ = make_class(teacher)
@@ -85,6 +102,31 @@ def test_start_then_end_lesson(client, db_session, make_teacher, make_class, mak
     assert ended_response.status_code == 200, ended_response.text
     assert ended_response.json()["status"] == "ended"
     assert ended_response.json()["endedAt"] is not None
+
+
+def test_ending_lesson_survives_daily_teardown_failure(client, db_session, make_teacher, make_class, make_lesson):
+    """A Daily outage while tearing down the room must not leave the lesson
+    stuck in "live" — the end-transition has to commit regardless."""
+    teacher = make_teacher()
+    class_ = make_class(teacher)
+    lesson = make_lesson(class_)
+    headers = auth_header(client, "teacher", teacher.username)
+
+    client.patch(f"/api/lessons/{lesson.lesson_id}", json={"status": "live"}, headers=headers)
+
+    app.dependency_overrides[get_video_service] = lambda: _TeardownFailingVideoService()
+    try:
+        response = client.patch(f"/api/lessons/{lesson.lesson_id}", json={"status": "ended"}, headers=headers)
+    finally:
+        del app.dependency_overrides[get_video_service]
+
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "ended"
+    assert response.json()["endedAt"] is not None
+
+    db_session.refresh(lesson)
+    assert lesson.status == "ended"
+    assert lesson.ended_at is not None
 
 
 def test_cannot_skip_straight_to_ended(client, make_teacher, make_class, make_lesson):
