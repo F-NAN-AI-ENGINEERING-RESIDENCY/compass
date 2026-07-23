@@ -275,167 +275,65 @@ h3 {
   }
 }
 
-/* Companion builder swatches (src/pages/CompanionBuilderPage.jsx). */
-.companion-swatch {
-  transition: border-color 0.15s ease, transform 0.15s ease;
+/* Public marketing nav links (src/components/MarketingNav.jsx) — one shared
+   class so every text link (nav items + "Sign in") behaves identically: no
+   underline at rest, ink -> forest on hover, underline appears only on hover. */
+.public-nav-link {
+  color: var(--color-ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
 }
-.companion-swatch:hover:not([aria-disabled='true']) {
-  border-color: var(--color-forest);
-  transform: translateY(-2px);
+.public-nav-link:hover {
+  color: var(--color-forest);
+  text-decoration: underline;
 }
 
-/* Scout chat (src/pages/ScoutPage.jsx). */
-.scout-quick-action {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
+/* "Sign in" reads as slightly more actionable than the plain nav links (it's
+   already forest at rest, next to the primary "Get started" pill) — same
+   hover/transition treatment, without recoloring it to ink first. */
+.public-nav-signin {
   color: var(--color-forest);
-  background: transparent;
-  border: 1.5px solid var(--color-forest);
-  border-radius: var(--radius-pill);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.public-nav-signin:hover {
+  color: var(--color-forest-dark);
+  text-decoration: underline;
+}
+
+/* Signed-in app nav items (src/components/AppNavItem.jsx), shared by every
+   teacher and student page via Layout.jsx. Idle text is on-dark (the header
+   is forest-green); hover and the active page both get the same treatment —
+   forest text sitting on its own cream-dim pill, not just a color swap on
+   the dark background. */
+.app-nav-item {
+  display: inline-flex;
+  align-items: center;
   padding: 0.4rem 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.scout-quick-action:hover {
-  background: var(--color-forest);
-  color: var(--color-text-on-dark);
-}
-
-.scout-input-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: white;
-  border: 1.5px solid var(--color-cream-dim);
   border-radius: var(--radius-pill);
-  padding: 0.4rem 0.4rem 0.4rem 1.1rem;
-  transition: border-color 0.15s ease;
-}
-.scout-input-bar:focus-within {
-  border-color: var(--color-forest);
-}
-.scout-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
   font-family: var(--font-body);
-  font-size: 1rem;
-  color: var(--color-ink);
-}
-.scout-send-button {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: none;
-  background: var(--color-forest);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-weight: 500;
+  color: var(--color-text-on-dark);
+  text-decoration: none;
   cursor: pointer;
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
-.scout-send-button:hover:not(:disabled) {
-  background: var(--color-forest-dark);
-  transform: scale(1.05);
-}
-.scout-send-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Shared mood picker (src/components/MoodPicker.jsx). */
-.mood-picker-option {
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-.mood-picker-option:hover {
+.app-nav-item:hover,
+.app-nav-item--active {
+  color: var(--color-forest);
   background: var(--color-cream-dim);
-  transform: scale(1.08);
 }
 
-/* Wellbeing journal writing surface (src/components/wellbeing/JournalSection.jsx).
-   Fraunces + ruled horizontal lines behind the text — the one place in the
-   app that isn't Albert Sans/Bricolage. Line-height and the ruled-line
-   spacing below are the same 28px so the rule sits right under each line
-   of text. */
-.journal-textarea {
-  width: 100%;
-  font-family: var(--font-journal);
-  font-size: 1.05rem;
-  line-height: 28px;
-  color: var(--color-ink);
-  background-color: var(--color-cream);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 27px,
-    var(--color-cream-dim) 27px,
-    var(--color-cream-dim) 28px
-  );
-  border: 1.5px solid var(--color-cream-dim);
-  border-radius: 10px;
-  padding: 4px 1rem 0;
-  resize: vertical;
-}
-.journal-textarea:focus {
-  outline: none;
-  border-color: var(--color-forest);
-}
-.journal-entry-text {
-  font-family: var(--font-journal);
-  color: var(--color-ink);
-}
-
-/* Meditation duration picker (src/components/wellbeing/MeditationSection.jsx). */
-.meditation-duration {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  color: var(--color-text-on-dark);
-  background: rgba(245, 241, 230, 0.12);
-  border: 1.5px solid rgba(245, 241, 230, 0.35);
-  border-radius: var(--radius-pill);
-  padding: 0.4rem 1rem;
+/* Logo + wordmark (src/components/Logo.jsx), used as a home link on every
+   screen — a subtle scale on hover signals it's clickable. */
+.logo-wordmark {
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease;
 }
-.meditation-duration:hover:not(:disabled) {
-  background: rgba(245, 241, 230, 0.22);
-}
-.meditation-duration[aria-pressed='true'] {
-  background: var(--color-cream);
-  color: var(--color-ink);
-  border-color: var(--color-cream);
-}
-.meditation-duration:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-/* Wellbeing tab switcher (src/pages/WellbeingPage.jsx). */
-.wellbeing-tab {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--color-ink-muted);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 0.5rem 0.25rem;
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.wellbeing-tab:hover {
-  color: var(--color-forest);
-}
-.wellbeing-tab[aria-selected='true'] {
-  color: var(--color-forest);
-  border-bottom-color: var(--color-forest);
+.logo-wordmark:hover {
+  transform: scale(1.03);
 }
 
 /* Error message shown under a form when a request fails (bad credentials,

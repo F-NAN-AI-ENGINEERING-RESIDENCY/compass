@@ -95,6 +95,7 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 | `GET /api/lessons/:lessonId` | Lesson metadata — used to confirm a lesson is live before opening a socket. |
 | `PATCH /api/lessons/:lessonId` | Transition status: `scheduled → live → ended`. Going live provisions a video room; ending tears it down (deletes the Daily room, which force-disconnects any remaining participants) and closes the lesson's WebSocket connections. A background scheduler auto-ends `live` lessons the same way after `LESSON_INACTIVITY_TIMEOUT_MINUTES` (default 15) of no Daily participant activity, so an abandoned room doesn't sit open. |
 | `GET /api/lessons/:lessonId/video-token` | Join token for the lesson's video room. |
+| `GET /api/students/me/live-lessons` | Live lessons for classes the requesting student is enrolled in — lets a student join directly from a "live now" list instead of typing a lesson id. |
 
 #### Materials
 

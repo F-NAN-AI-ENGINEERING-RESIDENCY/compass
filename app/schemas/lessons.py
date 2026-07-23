@@ -28,6 +28,13 @@ class LessonResponse(CamelModel):
     ended_at: Optional[datetime] = None
 
 
+class LiveLessonResponse(CamelModel):
+    lesson_id: int
+    class_id: int
+    class_name: str
+    started_at: Optional[datetime] = None
+
+
 class VideoTokenResponse(CamelModel):
     room_id: str
     room_url: str

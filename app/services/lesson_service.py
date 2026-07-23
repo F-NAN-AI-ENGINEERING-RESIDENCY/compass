@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.enrollment import Enrollment
 from app.models.lesson import Lesson
@@ -151,6 +151,19 @@ def end_inactive_lessons(
     for lesson in find_inactive_live_lessons(db, now, timeout_minutes):
         ended.append(transition_lesson_status(db, lesson, "ended", video_service, ended_by="system"))
     return ended
+
+
+def get_live_lessons_for_student(db: Session, student_id: int) -> List[Lesson]:
+    """Live lessons for classes the student is enrolled in — reuses the
+    existing Enrollment relationship rather than a new join table."""
+    return (
+        db.query(Lesson)
+        .join(Enrollment, Enrollment.class_id == Lesson.class_id)
+        .options(joinedload(Lesson.class_))
+        .filter(Enrollment.student_id == student_id, Lesson.status == "live")
+        .order_by(Lesson.started_at)
+        .all()
+    )
 
 
 def get_video_token_for_user(

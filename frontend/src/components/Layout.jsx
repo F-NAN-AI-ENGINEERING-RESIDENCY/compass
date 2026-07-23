@@ -2,6 +2,7 @@ import { Link, Outlet } from 'react-router-dom' // Link navigates without a full
 import { useAuth } from '../auth/AuthContext.jsx'
 import { LogoWordmark } from './Logo.jsx'
 import { AvatarBadge } from './AvatarBadge.jsx'
+import { AppNavItem } from './AppNavItem.jsx'
 
 // Shared page frame: a top nav bar plus whatever page is currently routed to.
 // Every route in App.jsx renders inside this via <Outlet/>. Dark forest-green
@@ -21,9 +22,7 @@ export function Layout() {
           background: 'var(--color-forest)',
         }}
       >
-        <Link to="/" style={{ color: 'var(--color-text-on-dark)', textDecoration: 'none' }}>
-          <LogoWordmark color="var(--color-text-on-dark)" />
-        </Link>
+        <LogoWordmark color="var(--color-text-on-dark)" shade="var(--color-text-on-dark-muted)" />
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           {user ? (
             // Signed in: show where you can go, who's signed in, and a way to sign out.
@@ -31,47 +30,27 @@ export function Layout() {
             // a student following this link should land on their own
             // dashboard, not a teacher-only page that immediately 403s.
             <>
-              <Link
-                to={user.role === 'teacher' ? '/dashboard' : '/student/dashboard'}
-                style={{ color: 'var(--color-text-on-dark)' }}
-              >
+              <AppNavItem to={user.role === 'teacher' ? '/dashboard' : '/student/dashboard'}>
                 Dashboard
-              </Link>
+              </AppNavItem>
               {user.role === 'student' && (
                 <>
-                  <Link to="/student" style={{ color: 'var(--color-text-on-dark)' }}>
-                    My classes
-                  </Link>
-                  <Link to="/scout" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Scout
-                  </Link>
-                  <Link to="/wellbeing" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Wellbeing
-                  </Link>
-                  <Link to="/badge" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Badge
-                  </Link>
+                  <AppNavItem to="/student">My classes</AppNavItem>
+                  <AppNavItem to="/scout">Scout</AppNavItem>
+                  <AppNavItem to="/wellbeing">Wellbeing</AppNavItem>
+                  <AppNavItem to="/companion">Companion</AppNavItem>
                 </>
               )}
               {user.role === 'teacher' && (
                 <>
-                  <Link to="/sessions" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Sessions
-                  </Link>
-                  <Link to="/materials" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Materials
-                  </Link>
-                  <Link to="/recordings" style={{ color: 'var(--color-text-on-dark)' }}>
-                    Recordings
-                  </Link>
+                  <AppNavItem to="/sessions">Sessions</AppNavItem>
+                  <AppNavItem to="/materials">Materials</AppNavItem>
+                  <AppNavItem to="/recordings">Recordings</AppNavItem>
                 </>
               )}
-              <Link
-                to={user.role === 'teacher' ? '/settings' : '/student/settings'}
-                style={{ color: 'var(--color-text-on-dark)' }}
-              >
+              <AppNavItem to={user.role === 'teacher' ? '/settings' : '/student/settings'}>
                 Settings
-              </Link>
+              </AppNavItem>
               <AvatarBadge name={user.name} />
               <button onClick={logout} className="btn-pill btn-pill--outline" style={outlineOnDark}>
                 Log out
@@ -82,9 +61,7 @@ export function Layout() {
             // through role-select first (screen 02) rather than straight to
             // the form, since the form needs to know which role to register.
             <>
-              <Link to="/login" style={{ color: 'var(--color-text-on-dark)' }}>
-                Log in
-              </Link>
+              <AppNavItem to="/login">Log in</AppNavItem>
               <Link to="/role-select" className="btn-pill btn-pill--outline" style={outlineOnDark}>
                 Sign up
               </Link>
