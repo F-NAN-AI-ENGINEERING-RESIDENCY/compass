@@ -10,13 +10,9 @@ export function joinClass(joinCode) {
   })
 }
 
-// ASSUMPTION, NOT CONFIRMED: there is no "list the logged-in student's
-// enrollments" endpoint in app/routers/enrollments.py today — only POST
-// exists. This guesses GET /api/enrollments would be added as the
-// student-scoped mirror of GET /api/classes (which is teacher-scoped to
-// "my classes"), returning EnrollmentResponse[] for the current student.
-// Confirm the actual path/shape with the backend team before relying on this
-// — it will 404 until that route exists.
+// GET /api/enrollments: student-scoped mirror of GET /api/classes (teacher-
+// scoped to "my classes"), added on noboni/student-enrollments-list. Returns
+// EnrollmentResponse[] for the current student.
 export function listMyEnrollments() {
   return apiRequest('/api/enrollments')
 }

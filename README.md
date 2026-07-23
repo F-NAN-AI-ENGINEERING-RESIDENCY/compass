@@ -83,6 +83,7 @@ All endpoints below reflect what's actually implemented today; see "Known deviat
 | `PATCH /api/classes/:classId` | Teacher renames the class or adjusts its alert threshold. |
 | `DELETE /api/classes/:classId` | Teacher deletes the class (cascades to its enrollments and lessons). |
 | `POST /api/enrollments` | Student joins a class by join code. |
+| `GET /api/enrollments` | Lists the logged-in student's own enrollments (student-scoped mirror of `GET /api/classes`). |
 
 Classes has full Create/Read/Update/Delete — this is the resource satisfying the "at least one resource with full CRUD" requirement. Signals (below) also has all four, independently.
 

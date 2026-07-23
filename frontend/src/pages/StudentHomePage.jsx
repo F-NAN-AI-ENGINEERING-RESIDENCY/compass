@@ -4,15 +4,6 @@ import { joinClass, listMyEnrollments } from '../api/enrollments.js'
 import { getClass } from '../api/classes.js'
 
 // Wireframe spec's student home shell: "join class, view enrolled classes."
-//
-// POST /api/enrollments (join by code) exists on felix/roster-endpoints
-// (open PR, not yet merged to main) — this will 404 until that merges, same
-// situation as the teacher dashboard's "create class."
-//
-// The on-load fetch below calls listMyEnrollments(), which hits a GUESSED,
-// UNCONFIRMED endpoint (see the comment in api/enrollments.js) — there is no
-// real "list my enrolled classes" route today. This will 404 until the
-// backend team confirms/builds it; treat that as expected until then.
 export function StudentHomePage() {
   const [classes, setClasses] = useState([])
   const [joinCode, setJoinCode] = useState('')
