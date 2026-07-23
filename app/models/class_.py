@@ -54,3 +54,6 @@ class Class(Base):
     current_skills: Mapped[list["CurrentSkill"]] = relationship(
         back_populates="class_", cascade="all, delete-orphan", passive_deletes=True
     )
+    materials: Mapped[list["Material"]] = relationship(
+        back_populates="class_", cascade="all, delete-orphan", passive_deletes=True
+    )
