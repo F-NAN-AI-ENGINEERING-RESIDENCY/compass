@@ -41,9 +41,11 @@ export async function apiRequest(path, options = {}) {
   const data = await response.json().catch(() => null) // tolerate a non-JSON error body
 
   if (!response.ok) {
-    // FastAPI error responses look like { "detail": "message" } — surface that
-    // message so calling code (and the UI) can show something meaningful.
-    const message = data?.detail || `Request failed with status ${response.status}`
+    // app/exceptions.py normalizes every error response to { "message": "..." }
+    // (not FastAPI's default { "detail": "..." }) — .detail is checked too as a
+    // defensive fallback in case something outside those handlers ever responds
+    // in the framework-default shape, but .message is what the backend actually sends.
+    const message = data?.message || data?.detail || `Request failed with status ${response.status}`
     throw new Error(message)
   }
 
