@@ -1,11 +1,12 @@
 import { apiRequest } from './client.js'
 
 // Creates a lesson under a class the logged-in teacher owns. Starts out
-// 'scheduled' — use updateLessonStatus to go live.
-export function createLesson({ classId, title }) {
+// 'scheduled' — use updateLessonStatus to go live. scheduledAt is optional
+// (see LessonCreateRequest in app/schemas/lessons.py).
+export function createLesson({ classId, title, scheduledAt }) {
   return apiRequest('/api/lessons', {
     method: 'POST',
-    body: JSON.stringify({ classId, title }),
+    body: JSON.stringify({ classId, title, scheduledAt: scheduledAt || undefined }),
   })
 }
 
