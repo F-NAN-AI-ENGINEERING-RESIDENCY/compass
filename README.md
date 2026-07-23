@@ -120,6 +120,14 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 
 Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owner/not enrolled), and `404` (not found) as applicable, in addition to the success shape listed.
 
+#### AI Tutor
+
+| Method & Path | Description |
+|---|---|
+| `POST /api/tutor/message` | Student-only. Sends a message to the Socratic AI tutor; optionally pass `lessonId` to link the conversation to a lesson. Finds or creates the student's `tutor_sessions` row, persists both the student's message and the tutor's reply as `tutor_messages`, and returns `{ sessionId, reply }`. `404` if `lessonId` doesn't reference a real lesson. |
+
+This is the AI-tutor half of Sprint 3 only — question routing/clustering (`questions`, `question_clusters`) is a separate, later step and isn't wired to any endpoint yet.
+
 #### WebSocket Channel
 
 `WS /ws/lessons/:lessonId` — one channel per lesson; both the student's lesson view and the teacher's dashboard connect for the duration of a live lesson.
@@ -141,6 +149,8 @@ Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owne
 - Transcription runs as a synchronous FastAPI `BackgroundTask` (a deliberate capstone-scale choice over a real task queue), triggered by the Daily recording webhook. Known gap: a process crash/restart mid-job leaves that recording's `status` stuck at `transcribing` — the job's own exception handling only covers in-process failures, not restarts, and no reconciliation job exists to find and retry stuck recordings.
 - The inactivity auto-end scheduler (APScheduler, in-process) checks every 60 seconds and relies on `lessons.last_activity_at`, which is bumped only by Daily's `participant.joined`/`participant.left` webhooks (plus a baseline set when a lesson goes live). If the Daily webhook is ever misconfigured to not send those two event types, a genuinely-abandoned room won't auto-end. Also in-process only: horizontally scaling to multiple API instances would need this moved to a single shared job (e.g. via a lock), not one scheduler per instance.
 - `POST /api/auth/google` design decision beyond the original ask, flagging explicitly: if the verified Google email matches an existing *password* account (same role), that account is linked (its `googleSub` gets set) and the sign-in logs into it, rather than failing on the `email` unique constraint or silently creating a duplicate. Only trusts Google's email for this if the token's `email_verified` claim is `true`. `googleSub` is scoped per-role (students/teachers tables each have their own unique constraint) — the same Google account can independently become a student account and a teacher account, mirroring how username/email are already scoped per-role rather than globally unique across both tables.
+- The AI tutor's system prompt tells the model to redirect a student to a teacher/counselor/trusted adult if they express distress, but no mechanism notifies a teacher when that happens — it's a silent client-side redirect only. This needs a product decision (a dashboard signal? a separate alert flow?) before it's built; intentionally parked, not an oversight.
+- The AI tutor currently calls Gemini (`GeminiTutorService`), not Claude/Anthropic as originally planned for Sprint 3 — a temporary swap pending Claude API token approval. The `TutorService` abstraction is provider-agnostic, so swapping in an `AnthropicTutorService` later is a self-contained change.
 
 ### Schema Design
 
@@ -162,7 +172,11 @@ Reflects the actual current tables; differences from the original schema draft a
 
 **`sessions`** — `session_id` PK, `token` (unique, the bearer credential), `user_id` (polymorphic — a student or teacher id depending on `role`), `role`, `created_at`, `expires_at`.
 
-**Modeled, not yet wired to any endpoint** (support the deferred AI tutor / question-clustering features): `tutor_sessions`, `tutor_messages`, `questions`, `question_clusters`.
+**`tutor_sessions`** — `session_id` PK, `student_id` FK (nullable, `SET NULL` on delete), `lesson_id` FK (nullable, `SET NULL` on delete), `started_at`.
+
+**`tutor_messages`** — `message_id` PK, `session_id` FK (`CASCADE` on delete), `sender` (`student | ai`), `message_text`, `created_at`.
+
+**Modeled, not yet wired to any endpoint** (support the deferred question-clustering feature): `questions`, `question_clusters`.
 
 **Architectural notes carried over from the original design:**
 - There is no `dashboard` table — it's a live query joining `confusion_signals` and `current_skills`, filtered by the active lesson.

@@ -16,6 +16,7 @@ from app.routers import (
     signals,
     students,
     transcripts,
+    tutor,
     webhooks,
 )
 from app.services.lesson_scheduler import start_scheduler
@@ -61,6 +62,7 @@ app.include_router(recordings.router)
 app.include_router(signals.router)
 app.include_router(students.router)
 app.include_router(transcripts.router)
+app.include_router(tutor.router)
 app.include_router(webhooks.router)
 app.include_router(dashboard_ws.router)
 
