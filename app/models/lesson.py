@@ -47,3 +47,6 @@ class Lesson(Base):
     question_clusters: Mapped[list["QuestionCluster"]] = relationship(
         back_populates="lesson", cascade="all, delete-orphan", passive_deletes=True
     )
+    recordings: Mapped[list["Recording"]] = relationship(
+        back_populates="lesson", cascade="all, delete-orphan", passive_deletes=True
+    )

@@ -141,3 +141,15 @@ def test_get_room_url_returns_daily_url():
     url = service.get_room_url("abc123")
 
     assert url == "https://fake.daily.co/abc123"
+
+
+@respx.mock
+def test_get_recording_access_link_returns_fresh_download_link():
+    respx.get("https://api.daily.co/v1/recordings/rec-1/access-link").mock(
+        return_value=httpx.Response(200, json={"download_link": "https://s3.example.com/rec-1?sig=abc", "expires": 123})
+    )
+    service = DailyVideoService(api_key="test-key")
+
+    link = service.get_recording_access_link("rec-1")
+
+    assert link == "https://s3.example.com/rec-1?sig=abc"
