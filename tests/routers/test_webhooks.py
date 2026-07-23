@@ -95,6 +95,23 @@ def _recording_ready_event(room_name: str, recording_id: str = "rec-1", duration
     ).encode("utf-8")
 
 
+def _participant_event(event_type: str, room: str) -> bytes:
+    return json.dumps(
+        {
+            "version": "1.0.0",
+            "type": event_type,
+            "id": "evt-participant-1",
+            "event_ts": 1234567890,
+            "payload": {
+                "room": room,
+                "user_id": "user-1",
+                "user_name": "Ms. Rivera",
+                "session_id": "session-1",
+            },
+        }
+    ).encode("utf-8")
+
+
 def _post_webhook(client, body: bytes, timestamp: str = "1234567999", signature: str = None, secret: str = None):
     sig = signature if signature is not None else _sign(body, timestamp, secret or WEBHOOK_SECRET_B64)
     return client.post(
@@ -175,6 +192,42 @@ def test_unknown_room_is_ignored_with_200(client, db_session):
 
 def test_unknown_event_type_is_ignored_with_200(client):
     body = json.dumps({"type": "recording.started", "payload": {}}).encode("utf-8")
+    response = _post_webhook(client, body)
+    assert response.status_code == 200
+
+
+def test_participant_joined_bumps_lesson_last_activity(client, db_session, make_teacher, make_class, make_lesson):
+    teacher = make_teacher()
+    class_ = make_class(teacher)
+    lesson = make_lesson(class_, status="live")
+    lesson.video_room_id = "room-live"
+    db_session.commit()
+
+    body = _participant_event("participant.joined", "room-live")
+    response = _post_webhook(client, body)
+
+    assert response.status_code == 200, response.text
+    db_session.refresh(lesson)
+    assert lesson.last_activity_at is not None
+
+
+def test_participant_left_bumps_lesson_last_activity(client, db_session, make_teacher, make_class, make_lesson):
+    teacher = make_teacher()
+    class_ = make_class(teacher)
+    lesson = make_lesson(class_, status="live")
+    lesson.video_room_id = "room-live-2"
+    db_session.commit()
+
+    body = _participant_event("participant.left", "room-live-2")
+    response = _post_webhook(client, body)
+
+    assert response.status_code == 200, response.text
+    db_session.refresh(lesson)
+    assert lesson.last_activity_at is not None
+
+
+def test_participant_event_for_unknown_room_is_ignored_with_200(client):
+    body = _participant_event("participant.joined", "room-that-does-not-exist")
     response = _post_webhook(client, body)
     assert response.status_code == 200
 
