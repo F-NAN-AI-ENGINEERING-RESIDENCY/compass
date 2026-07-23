@@ -15,10 +15,23 @@ class Settings(BaseSettings):
     # Auth
     session_expire_hours: int = 24
 
-    # Video (Daily.co). Unset in local dev/tests on purpose: app.services.video
-    # falls back to FakeVideoService whenever this is blank, so no one needs a
-    # real Daily account to run the app or the test suite.
+    # Video (Daily.co) + transcription (OpenAI Whisper). Provider selection is
+    # config-driven and defaults to the network-free stub so no one needs real
+    # vendor credentials to run the app or the test suite.
+    video_provider: str = "stub"
+    transcription_provider: str = "stub"
     daily_api_key: Optional[str] = None
+    daily_webhook_secret: Optional[str] = None
+    openai_api_key: Optional[str] = None
+
+    # How long a "live" lesson may sit with no Daily participant activity
+    # before the background scheduler auto-ends it.
+    lesson_inactivity_timeout_minutes: int = 15
+    # Off in tests (see conftest.py): a real interval-based scheduler thread
+    # starting/stopping around every single TestClient-using test would be
+    # both wasteful and a source of flakiness, and tests exercise the
+    # inactivity check directly via lesson_service instead.
+    enable_lesson_scheduler: bool = True
 
     # App
     environment: str = "development"

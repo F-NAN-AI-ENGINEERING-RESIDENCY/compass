@@ -8,6 +8,8 @@ import { ResearchPage } from './pages/ResearchPage.jsx'
 import { RoleSelectPage } from './pages/RoleSelectPage.jsx'
 import { LoginPage } from './pages/LoginPage.jsx'
 import { SignupPage } from './pages/SignupPage.jsx'
+import { StudentSignup } from './pages/StudentSignup.jsx'
+import { StudentLogin } from './pages/StudentLogin.jsx'
 import { TeacherDashboardPage } from './pages/TeacherDashboardPage.jsx'
 import { TeacherLessonDashboardPage } from './pages/TeacherLessonDashboardPage.jsx'
 import { StudentHomePage } from './pages/StudentHomePage.jsx'
@@ -16,7 +18,7 @@ import { StudentLessonPage } from './pages/StudentLessonPage.jsx'
 import { WellbeingPage } from './pages/WellbeingPage.jsx'
 import { StudentSettingsPage } from './pages/StudentSettingsPage.jsx'
 import { TeacherSettingsPage } from './pages/TeacherSettingsPage.jsx'
-import { BadgeBuilderPage } from './pages/BadgeBuilderPage.jsx'
+import { CompanionBuilderPage } from './pages/CompanionBuilderPage.jsx'
 import { ScoutPage } from './pages/ScoutPage.jsx'
 import { MaterialsPage } from './pages/MaterialsPage.jsx'
 import { RecordingsPage } from './pages/RecordingsPage.jsx'
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="/role-select" element={<RoleSelectPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/student/signup" element={<StudentSignup />} />
+          <Route path="/student/login" element={<StudentLogin />} />
 
           {/* Pre-join and in-lesson screens are also full-bleed/no-nav — an
               immersive "in a call" context per the spec, same reasoning as
@@ -78,7 +82,7 @@ export default function App() {
               <Route path="/student/dashboard" element={<StudentDashboardPage />} />
               <Route path="/wellbeing" element={<WellbeingPage />} />
               <Route path="/student/settings" element={<StudentSettingsPage />} />
-              <Route path="/badge" element={<BadgeBuilderPage />} />
+              <Route path="/companion" element={<CompanionBuilderPage />} />
               <Route path="/scout" element={<ScoutPage />} />
             </Route>
           </Route>

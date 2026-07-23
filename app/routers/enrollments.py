@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -32,3 +34,13 @@ def create_enrollment(
     except enrollment_service.DuplicateEnrollmentError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     return _to_enrollment_response(enrollment)
+
+
+@router.get("", response_model=List[EnrollmentResponse])
+def list_my_enrollments(
+    current_user: CurrentUser = Depends(require_student),
+    db: Session = Depends(get_db),
+) -> List[EnrollmentResponse]:
+    student_id = auth_service.user_id_of(current_user.principal)
+    enrollments = enrollment_service.get_enrollments_for_student(db, student_id)
+    return [_to_enrollment_response(enrollment) for enrollment in enrollments]

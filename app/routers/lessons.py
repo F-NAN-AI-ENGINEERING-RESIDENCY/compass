@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
 from app.schemas.lessons import LessonCreateRequest, LessonResponse, LessonStatusUpdateRequest, VideoTokenResponse
 from app.services import auth_service, class_service, lesson_service
-from app.services.video import VideoService, get_video_service
+from app.services.video import VideoProvisioningError, VideoService, get_video_service
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
 
@@ -72,6 +72,8 @@ def update_lesson_status(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except lesson_service.InvalidLessonTransitionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except VideoProvisioningError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
     return _to_lesson_response(lesson)
 
 
@@ -85,7 +87,7 @@ def get_video_token(
     user_id = auth_service.user_id_of(current_user.principal)
     try:
         lesson = lesson_service.get_lesson_or_404(db, lesson_id)
-        token = lesson_service.get_video_token_for_user(
+        token, room_url = lesson_service.get_video_token_for_user(
             db, lesson, user_id, current_user.role.value, video_service
         )
     except lesson_service.LessonNotFoundError as exc:
@@ -94,4 +96,6 @@ def get_video_token(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except lesson_service.LessonNotLiveError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    return VideoTokenResponse(room_id=lesson.video_room_id, provider=lesson.video_provider, token=token)
+    return VideoTokenResponse(
+        room_id=lesson.video_room_id, room_url=room_url, provider=lesson.video_provider, token=token
+    )

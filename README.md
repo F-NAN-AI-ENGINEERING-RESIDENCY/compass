@@ -83,6 +83,7 @@ All endpoints below reflect what's actually implemented today; see "Known deviat
 | `PATCH /api/classes/:classId` | Teacher renames the class or adjusts its alert threshold. |
 | `DELETE /api/classes/:classId` | Teacher deletes the class (cascades to its enrollments and lessons). |
 | `POST /api/enrollments` | Student joins a class by join code. |
+| `GET /api/enrollments` | Lists the logged-in student's own enrollments (student-scoped mirror of `GET /api/classes`). |
 
 Classes has full Create/Read/Update/Delete — this is the resource satisfying the "at least one resource with full CRUD" requirement. Signals (below) also has all four, independently.
 
@@ -92,8 +93,18 @@ Classes has full Create/Read/Update/Delete — this is the resource satisfying t
 |---|---|
 | `POST /api/lessons` | Teacher creates a lesson under a class (`scheduled`). |
 | `GET /api/lessons/:lessonId` | Lesson metadata — used to confirm a lesson is live before opening a socket. |
-| `PATCH /api/lessons/:lessonId` | Transition status: `scheduled → live → ended`. Going live provisions a video room; ending tears it down and closes the lesson's WebSocket connections. |
+| `PATCH /api/lessons/:lessonId` | Transition status: `scheduled → live → ended`. Going live provisions a video room; ending tears it down (deletes the Daily room, which force-disconnects any remaining participants) and closes the lesson's WebSocket connections. A background scheduler auto-ends `live` lessons the same way after `LESSON_INACTIVITY_TIMEOUT_MINUTES` (default 15) of no Daily participant activity, so an abandoned room doesn't sit open. |
 | `GET /api/lessons/:lessonId/video-token` | Join token for the lesson's video room. |
+
+#### Materials
+
+| Method & Path | Description |
+|---|---|
+| `POST /api/classes/:classId/materials` | Teacher adds a material under a free-text unit label; metadata only (name/unit), no file storage. |
+| `GET /api/classes/:classId/materials` | Lists active materials for the class, ordered by unit then position. |
+| `PATCH /api/materials/:materialId` | Teacher renames a material. |
+| `DELETE /api/materials/:materialId` | Soft-delete (`is_active = false`); no hard-delete endpoint. |
+| `PATCH /api/classes/:classId/materials/reorder` | Teacher reorders one unit's materials; body is `{ unit, materialIds }` with every active id in that unit, new order. `409` if the id list doesn't exactly match. |
 
 #### Confusion Signals (the "I'm lost" feature)
 
@@ -125,6 +136,8 @@ Every endpoint returns `401` (not authenticated), `403` (wrong role/not the owne
 - The dashboard's per-signal entries and the PATCH response include the student's identity (`studentId`, `studentName`) to the teacher. The original contract's `{ signalId, createdAt, status }` shape predates a later, explicit team decision that the teacher always sees who sent a signal — anonymity is from classmates only, never from the teacher.
 - Classes/Enrollments/Lessons/Auth aren't in the original API Contract section at all (it only documented the signals/dashboard/WS slice) — they're included above since they're real and load-bearing for the setup flow.
 - `skill.updated` (documented in the original WS contract) isn't fired by anything yet, since nothing writes skill data — see the skill-standing note earlier in this README.
+- Transcription runs as a synchronous FastAPI `BackgroundTask` (a deliberate capstone-scale choice over a real task queue), triggered by the Daily recording webhook. Known gap: a process crash/restart mid-job leaves that recording's `status` stuck at `transcribing` — the job's own exception handling only covers in-process failures, not restarts, and no reconciliation job exists to find and retry stuck recordings.
+- The inactivity auto-end scheduler (APScheduler, in-process) checks every 60 seconds and relies on `lessons.last_activity_at`, which is bumped only by Daily's `participant.joined`/`participant.left` webhooks (plus a baseline set when a lesson goes live). If the Daily webhook is ever misconfigured to not send those two event types, a genuinely-abandoned room won't auto-end. Also in-process only: horizontally scaling to multiple API instances would need this moved to a single shared job (e.g. via a lock), not one scheduler per instance.
 
 ### Schema Design
 

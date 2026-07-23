@@ -8,6 +8,15 @@ class DuplicateEnrollmentError(Exception):
     pass
 
 
+def get_enrollments_for_student(db: Session, student_id: int) -> list[Enrollment]:
+    return (
+        db.query(Enrollment)
+        .filter(Enrollment.student_id == student_id)
+        .order_by(Enrollment.enrolled_at)
+        .all()
+    )
+
+
 def create_enrollment(db: Session, student_id: int, class_id: int) -> Enrollment:
     exists = (
         db.query(Enrollment)

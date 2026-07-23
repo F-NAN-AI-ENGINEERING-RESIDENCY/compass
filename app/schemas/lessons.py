@@ -30,5 +30,6 @@ class LessonResponse(CamelModel):
 
 class VideoTokenResponse(CamelModel):
     room_id: str
+    room_url: str
     provider: str
     token: str

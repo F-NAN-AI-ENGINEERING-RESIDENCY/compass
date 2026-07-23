@@ -9,3 +9,10 @@ export function joinClass(joinCode) {
     body: JSON.stringify({ joinCode }),
   })
 }
+
+// GET /api/enrollments: student-scoped mirror of GET /api/classes (teacher-
+// scoped to "my classes"), added on noboni/student-enrollments-list. Returns
+// EnrollmentResponse[] for the current student.
+export function listMyEnrollments() {
+  return apiRequest('/api/enrollments')
+}

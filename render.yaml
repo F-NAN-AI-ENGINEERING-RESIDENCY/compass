@@ -31,6 +31,14 @@ services:
       # existing FakeVideoService fallback (no video, everything else works).
       - key: DAILY_API_KEY
         sync: false
+      # Activates real Daily.co room/token provisioning (app.services.video).
+      - key: VIDEO_PROVIDER
+        value: daily
+      # HMAC secret for verifying incoming Daily webhook signatures
+      # (app/routers/webhooks.py). Set manually after registering the
+      # webhook with Daily — see README/deploy notes.
+      - key: DAILY_WEBHOOK_SECRET
+        sync: false
 
   - type: web
     name: compass-frontend

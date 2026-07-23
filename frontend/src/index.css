@@ -25,6 +25,7 @@
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif; /* headlines */
   --font-body: 'Albert Sans', system-ui, sans-serif; /* body text, buttons, form fields */
   --font-mono: 'Spline Sans Mono', ui-monospace, monospace; /* data/mono contexts, e.g. join codes */
+  --font-journal: 'Fraunces', Georgia, serif; /* the ONE exception to display/body — scoped strictly to the wellbeing journal's writing surface, never used elsewhere */
 
   --radius-pill: 999px; /* fully-rounded buttons, used throughout the spec */
   --radius-card: 16px; /* rounded-corner cards */

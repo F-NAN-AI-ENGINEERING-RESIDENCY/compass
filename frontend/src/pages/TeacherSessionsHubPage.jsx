@@ -13,12 +13,13 @@ const STORAGE_KEY = 'compass_tracked_sessions'
 // kept in localStorage same as before — only lesson *creation* was fake.
 export function TeacherSessionsHubPage() {
   const [sessions, setSessions] = useState(() => readSaved()) // [{ label, lessonId }]
-  const [statuses, setStatuses] = useState({}) // lessonId -> { status, error }
+  const [statuses, setStatuses] = useState({}) // lessonId -> { status, classId, error }
 
   const [classes, setClasses] = useState([])
   const [classesError, setClassesError] = useState(null)
   const [selectedClassId, setSelectedClassId] = useState('')
   const [title, setTitle] = useState('')
+  const [scheduledAt, setScheduledAt] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
 
@@ -39,9 +40,12 @@ export function TeacherSessionsHubPage() {
   async function refreshStatus(lessonId) {
     try {
       const lesson = await getLesson(lessonId)
-      setStatuses((current) => ({ ...current, [lessonId]: { status: lesson.status, error: null } }))
+      setStatuses((current) => ({
+        ...current,
+        [lessonId]: { status: lesson.status, classId: lesson.classId, error: null },
+      }))
     } catch (err) {
-      setStatuses((current) => ({ ...current, [lessonId]: { status: null, error: err.message } }))
+      setStatuses((current) => ({ ...current, [lessonId]: { status: null, classId: null, error: err.message } }))
     }
   }
 
@@ -55,9 +59,13 @@ export function TeacherSessionsHubPage() {
     setCreateError(null)
     setIsCreating(true)
     try {
-      const lesson = await createLesson({ classId: Number(selectedClassId), title }) // real POST /api/lessons
+      // real POST /api/lessons; scheduledAt is optional, sent as-is from the
+      // datetime-local input (ISO-ish, no timezone) — the backend parses it
+      // as a naive datetime (see LessonCreateRequest).
+      const lesson = await createLesson({ classId: Number(selectedClassId), title, scheduledAt: scheduledAt || undefined })
       persistSessions([...sessions, { label: title, lessonId: lesson.lessonId }])
       setTitle('')
+      setScheduledAt('')
     } catch (err) {
       setCreateError(err.message)
     } finally {
@@ -75,6 +83,27 @@ export function TeacherSessionsHubPage() {
 
   async function handleTransition(lessonId, status) {
     try {
+      if (status === 'live') {
+        // The backend's PATCH /api/lessons/:id only validates a single
+        // lesson's own scheduled→live→ended state — nothing stops two
+        // lessons in the same class from both being 'live' at once. Enforce
+        // "only one live lesson per class" here instead, ending any other
+        // tracked lesson in the same class first. This only catches lessons
+        // tracked in this session list, since there's no "list lessons for a
+        // class" endpoint to check the full picture server-side.
+        const classId = statuses[lessonId]?.classId
+        const otherLiveSessions = sessions.filter(
+          (session) =>
+            session.lessonId !== lessonId &&
+            classId != null &&
+            statuses[session.lessonId]?.classId === classId &&
+            statuses[session.lessonId]?.status === 'live',
+        )
+        for (const other of otherLiveSessions) {
+          await updateLessonStatus(other.lessonId, 'ended')
+          await refreshStatus(other.lessonId)
+        }
+      }
       await updateLessonStatus(lessonId, status) // real PATCH
       await refreshStatus(lessonId)
     } catch (err) {
@@ -120,6 +149,14 @@ export function TeacherSessionsHubPage() {
             style={{ flex: 1 }}
             required
           />
+          <input
+            type="datetime-local"
+            className="text-input"
+            value={scheduledAt}
+            onChange={(event) => setScheduledAt(event.target.value)}
+            style={{ width: '12rem' }}
+            aria-label="Scheduled time (optional)"
+          />
           <button type="submit" className="btn-pill btn-pill--primary" disabled={isCreating}>
             {isCreating ? 'Creating…' : 'Create lesson'}
           </button>
@@ -163,10 +200,33 @@ export function TeacherSessionsHubPage() {
             <div
               key={session.lessonId}
               className="card"
-              style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              style={{
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                border: info?.status === 'live' ? '1.5px solid var(--color-forest)' : undefined,
+              }}
             >
               <div>
-                <div style={{ fontWeight: 600 }}>{session.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 600 }}>{session.label}</span>
+                  {info?.status === 'live' && (
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.05em',
+                        color: 'var(--color-text-on-dark)',
+                        background: 'var(--color-forest)',
+                        borderRadius: 'var(--radius-pill)',
+                        padding: '0.15rem 0.5rem',
+                      }}
+                    >
+                      LIVE
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
                   Lesson #{session.lessonId} ·{' '}
                   {info?.error ? (
