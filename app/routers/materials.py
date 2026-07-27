@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.dependencies import CurrentUser, get_db, require_teacher
+from app.dependencies import CurrentUser, get_current_user, get_db, require_teacher
 from app.schemas.materials import (
     MaterialCreateRequest,
     MaterialReorderRequest,
@@ -50,16 +50,18 @@ def create_material(
 @router.get("/api/classes/{class_id}/materials", response_model=List[MaterialResponse])
 def list_materials(
     class_id: int,
-    current_user: CurrentUser = Depends(require_teacher),
+    current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> List[MaterialResponse]:
-    teacher_id = auth_service.user_id_of(current_user.principal)
+    # Readable by the owning teacher and any student enrolled in the class —
+    # same authorization shape as GET /api/classes/:classId.
+    user_id = auth_service.user_id_of(current_user.principal)
     try:
         class_ = class_service.get_class_or_404(db, class_id)
-        class_service.assert_teacher_owns_class(class_, teacher_id)
+        class_service.assert_user_can_view_class(db, class_, user_id, current_user.role.value)
     except class_service.ClassNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except class_service.NotClassOwnerError as exc:
+    except (class_service.NotClassOwnerError, class_service.NotEnrolledInClassError) as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     materials = material_service.list_materials_for_class(db, class_id)
     return [_to_material_response(material) for material in materials]

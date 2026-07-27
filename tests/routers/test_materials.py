@@ -98,7 +98,7 @@ def test_list_materials_excludes_soft_deleted(client, make_teacher, make_class):
     assert response.json() == []
 
 
-def test_student_cannot_list_materials(client, make_student, make_teacher, make_class):
+def test_non_enrolled_student_cannot_list_materials(client, make_student, make_teacher, make_class):
     student = make_student()
     teacher = make_teacher()
     class_ = make_class(teacher)
@@ -106,6 +106,30 @@ def test_student_cannot_list_materials(client, make_student, make_teacher, make_
 
     response = client.get(f"/api/classes/{class_.class_id}/materials", headers=headers)
     assert response.status_code == 403
+
+
+def test_enrolled_student_can_list_materials(
+    client, make_student, make_teacher, make_class, make_enrollment
+):
+    student = make_student()
+    teacher = make_teacher()
+    class_ = make_class(teacher)
+    make_enrollment(student, class_)
+    teacher_headers = auth_header(client, "teacher", teacher.username)
+    _create(client, teacher_headers, class_.class_id, unit="Unit 1", display_name="Worksheet 1")
+
+    student_headers = auth_header(client, "student", student.username)
+    response = client.get(f"/api/classes/{class_.class_id}/materials", headers=student_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()[0]["displayName"] == "Worksheet 1"
+
+
+def test_list_materials_requires_auth(client, make_teacher, make_class):
+    teacher = make_teacher()
+    class_ = make_class(teacher)
+
+    response = client.get(f"/api/classes/{class_.class_id}/materials")
+    assert response.status_code == 401
 
 
 def test_owning_teacher_can_rename_material(client, make_teacher, make_class):
