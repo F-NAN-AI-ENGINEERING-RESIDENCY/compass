@@ -21,7 +21,7 @@ export function AuthSplitLayout({ children }) {
           gap: '1.5rem',
         }}
       >
-        <LogoWordmark color="var(--color-text-on-dark)" />
+        <LogoWordmark color="var(--color-text-on-dark)" shade="var(--color-text-on-dark-muted)" />
         <h1 style={{ fontSize: '2.25rem', lineHeight: 1.2 }}>Class, without the guessing.</h1>
         <p style={{ color: 'var(--color-text-on-dark-muted)', maxWidth: '32ch' }}>
           Students say "slow down" without raising a hand. Teachers see where the whole room

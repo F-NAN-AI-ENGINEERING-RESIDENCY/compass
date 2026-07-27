@@ -23,26 +23,20 @@ export function MarketingNav() {
         background: 'var(--color-cream)',
       }}
     >
-      <Link to="/" style={{ textDecoration: 'none' }}>
-        <LogoWordmark color="var(--color-forest)" />
-      </Link>
+      <LogoWordmark />
 
       {/* Marketing links: hidden below tablet width — see .landing-nav-links
           in index.css — there's no room for them next to the CTAs on mobile. */}
       <nav className="landing-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
         {NAV_LINKS.map(({ label, to }) => (
-          <Link
-            key={label}
-            to={to}
-            style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-ink)', textDecoration: 'none' }}
-          >
+          <Link key={label} to={to} className="public-nav-link" style={{ fontFamily: 'var(--font-body)', fontSize: '13px' }}>
             {label}
           </Link>
         ))}
       </nav>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexShrink: 0 }}>
-        <Link to="/login" style={{ color: 'var(--color-forest)', fontSize: '13px', textDecoration: 'none' }}>
+        <Link to="/login" className="public-nav-signin" style={{ fontSize: '13px' }}>
           Sign in
         </Link>
         <Link to="/role-select" className="btn-pill btn-pill--primary" style={{ textDecoration: 'none' }}>

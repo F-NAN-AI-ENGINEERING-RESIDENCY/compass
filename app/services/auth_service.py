@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Union
 
 from sqlalchemy import inspect as sa_inspect
@@ -65,8 +66,65 @@ def register_user(db: Session, payload: RegisterRequest) -> Principal:
 def authenticate_user(db: Session, role: RoleEnum, username: str, password: str) -> Principal:
     model = _model_for_role(role)
     user = db.query(model).filter(model.username == username).first()
-    if user is None or not user.is_active or not verify_password(password, user.password_hash):
+    # password_hash is null for Google-only accounts — check presence before
+    # verify_password, which needs a real hash string to compare against.
+    if user is None or not user.is_active or not user.password_hash or not verify_password(
+        password, user.password_hash
+    ):
         raise InvalidCredentialsError("Incorrect username or password")
+    return user
+
+
+def _generate_username_from_email(db: Session, model, email: str) -> str:
+    base = re.sub(r"[^a-z0-9_]", "", email.split("@")[0].lower()) or "user"
+    candidate = base
+    suffix = 1
+    while db.query(model).filter(model.username == candidate).first() is not None:
+        suffix += 1
+        candidate = f"{base}{suffix}"
+    return candidate
+
+
+def authenticate_or_register_with_google(
+    db: Session, role: RoleEnum, google_sub: str, email: str, name: str
+) -> Principal:
+    """Looks up an account by google_sub (returning role's table only — a
+    google_sub is not deduplicated across the student/teacher tables, same
+    as username/email today). Three cases:
+    1. google_sub already on file: log in.
+    2. No google_sub match, but the verified email matches an existing
+       password account: link this Google identity to it (first time that
+       account uses "Continue with Google") and log in.
+    3. Neither: create a new account, auth_provider="google", no password.
+    """
+    model = _model_for_role(role)
+
+    existing_by_sub = db.query(model).filter(model.google_sub == google_sub).first()
+    if existing_by_sub is not None:
+        return existing_by_sub
+
+    existing_by_email = db.query(model).filter(model.email == email).first()
+    if existing_by_email is not None:
+        existing_by_email.google_sub = google_sub
+        db.commit()
+        db.refresh(existing_by_email)
+        return existing_by_email
+
+    user = model(
+        username=_generate_username_from_email(db, model, email),
+        name=name,
+        email=email,
+        password_hash=None,
+        auth_provider="google",
+        google_sub=google_sub,
+    )
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise DuplicateAccountError("Username or email already registered")
+    db.refresh(user)
     return user
 
 
