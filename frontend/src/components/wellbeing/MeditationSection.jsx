@@ -22,6 +22,16 @@ const PHASE_COPY = {
   out: 'Breathe out… 4 seconds',
 }
 
+// mm:ss, e.g. 65 -> "1:05". Previously this displayed Math.ceil(seconds/60),
+// which only ever showed a whole-minute count ("1 min left") for the entire
+// session — it never visibly changed until it hit "0 min left" right at the
+// end, since ceil(1/60) is still 1. This ticks every second instead.
+function formatSecondsLeft(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
+
 // A guided breathing exercise: a central circle grows on the in-breath,
 // holds, and shrinks on the out-breath, on a timed 4s/4s/4s loop, with a
 // text cue kept in sync via a simple 1-second ticker (not tied 1:1 to the
@@ -125,8 +135,15 @@ export function MeditationSection({ onDone }) {
           </button>
 
           {elapsed > 0 && (
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-on-dark-muted)', marginTop: '0.85rem' }}>
-              {Math.ceil(secondsLeft / 60)} min left
+            <p
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--color-text-on-dark-muted)',
+                marginTop: '0.85rem',
+                fontFamily: 'var(--font-mono)', // ticking digits read better in a monospace face — the width doesn't jump per digit
+              }}
+            >
+              {formatSecondsLeft(secondsLeft)} left
             </p>
           )}
         </>
