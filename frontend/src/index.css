@@ -101,6 +101,37 @@ h3 {
   background: var(--color-cream-dim);
 }
 
+/* Meditation duration picker (MeditationSection.jsx) — light-on-dark pill,
+   since it sits on the forest-green breathing panel, not a cream background.
+   This class was referenced in the component but never actually defined
+   anywhere, so it was rendering with the browser's bare button default
+   (a plain bordered box) instead of a pill. */
+.meditation-duration {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-text-on-dark-muted);
+  background: transparent;
+  color: var(--color-text-on-dark);
+  cursor: pointer;
+}
+.meditation-duration:hover:not(:disabled) {
+  border-color: var(--color-text-on-dark);
+}
+/* Selected duration — aria-pressed is how the component marks which option
+   is active, so styling hooks off that instead of a second class name. */
+.meditation-duration[aria-pressed='true'] {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  border-color: var(--color-cream);
+}
+.meditation-duration:disabled {
+  opacity: 0.5; /* duration can't change once a session is running (disabled={isRunning}) */
+  cursor: not-allowed;
+}
+
 /* Rounded-corner card, the other recurring shape in the spec (dashboard tiles,
    role-select cards, etc). */
 .card {
