@@ -20,6 +20,15 @@ class RegisterRequest(CamelModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class GoogleAuthRequest(CamelModel):
+    id_token: str
+    # Required on every call, not just first-time signup: mirrors
+    # LoginRequest's explicit role, and lets the same google_sub exist as a
+    # separate student and teacher account (identical to how username/email
+    # are scoped per-role today, not deduplicated across the two tables).
+    role: RoleEnum
+
+
 class LoginRequest(CamelModel):
     role: RoleEnum
     username: str

@@ -14,6 +14,12 @@ class LessonStatusUpdateRequest(CamelModel):
     status: LessonStatusUpdate
 
 
+class LessonCreateRequest(CamelModel):
+    class_id: int
+    title: str
+    scheduled_at: Optional[datetime] = None
+
+
 class LessonResponse(CamelModel):
     lesson_id: int
     class_id: int
@@ -22,7 +28,15 @@ class LessonResponse(CamelModel):
     ended_at: Optional[datetime] = None
 
 
+class LiveLessonResponse(CamelModel):
+    lesson_id: int
+    class_id: int
+    class_name: str
+    started_at: Optional[datetime] = None
+
+
 class VideoTokenResponse(CamelModel):
     room_id: str
+    room_url: str
     provider: str
     token: str

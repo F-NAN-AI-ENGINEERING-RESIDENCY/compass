@@ -39,6 +39,29 @@ def create_signal(
     )
 
 
+@router.get("/signals/{signal_id}", response_model=TeacherSignalSummary)
+def get_signal(
+    lesson_id: int,
+    signal_id: uuid.UUID,
+    current_user: CurrentUser = Depends(require_teacher),
+    db: Session = Depends(get_db),
+) -> TeacherSignalSummary:
+    teacher_id = auth_service.user_id_of(current_user.principal)
+    try:
+        signal = signal_service.get_signal(db, lesson_id, signal_id, teacher_id)
+    except (signal_service.LessonNotFoundError, signal_service.SignalNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except signal_service.NotLessonOwnerError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    return TeacherSignalSummary(
+        signal_id=signal.public_id,
+        created_at=signal.created_at,
+        status=signal.status,
+        student_id=signal.student_id,
+        student_name=signal.student.name,
+    )
+
+
 @router.patch("/signals/{signal_id}", response_model=SignalUpdateResponse)
 def update_signal(
     lesson_id: int,
