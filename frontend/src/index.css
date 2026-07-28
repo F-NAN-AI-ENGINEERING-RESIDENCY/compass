@@ -132,6 +132,77 @@ h3 {
   cursor: not-allowed;
 }
 
+/* Wellbeing page tabs (WellbeingPage.jsx) — Journal / Breathe. Same
+   never-actually-defined gap as .meditation-duration above: underlined tabs,
+   sitting flush on top of the tablist's border-bottom so the active tab's
+   underline replaces that line exactly instead of drawing a second one. */
+.wellbeing-tab {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  background: transparent;
+  border: none;
+  padding: 0 0 0.75rem;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.wellbeing-tab:hover {
+  color: var(--color-ink);
+}
+.wellbeing-tab[aria-selected='true'] {
+  color: var(--color-forest);
+  border-bottom-color: var(--color-forest);
+}
+
+/* Journal writing surface (JournalSection.jsx) — meant to read like an actual
+   paper notebook page: --font-journal serif instead of the app's usual body
+   font, plus faint ruled lines behind the text. The repeating-linear-gradient
+   step height must match the text line-height exactly or the "ruling" drifts
+   out from under the text after a couple of lines. */
+.journal-textarea {
+  display: block;
+  width: 100%;
+  font-family: var(--font-journal);
+  font-size: 1.05rem;
+  line-height: 1.9rem;
+  color: var(--color-ink);
+  /* Lighter than the surrounding .card (--color-cream-dim) so this reads as
+     its own paper page sitting inside the card, and so the ruled lines below
+     (drawn in --color-cream-dim) are actually visible against it. */
+  background-color: var(--color-cream);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.9rem - 1px),
+    var(--color-cream-dim) calc(1.9rem - 1px),
+    var(--color-cream-dim) 1.9rem
+  );
+  background-attachment: local; /* scrolls the ruling with the text instead of leaving it fixed behind it */
+  border: none;
+  border-radius: 10px;
+  border-bottom: 1px solid var(--color-cream-dim);
+  padding: 0.6rem 0.75rem;
+  resize: vertical;
+}
+.journal-textarea:focus {
+  outline: none;
+}
+.journal-textarea::placeholder {
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+
+/* Past journal entries — same serif as the writing surface above, so a saved
+   entry still reads like a notebook page instead of switching to the app's
+   ordinary body font. */
+.journal-entry-text {
+  font-family: var(--font-journal);
+  color: var(--color-ink);
+  line-height: 1.5;
+}
+
 /* Rounded-corner card, the other recurring shape in the spec (dashboard tiles,
    role-select cards, etc). */
 .card {
