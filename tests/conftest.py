@@ -26,6 +26,7 @@ from app.models.recording import Recording
 from app.models.student import Student
 from app.models.teacher import Teacher
 from app.models.transcript_chunk import TranscriptChunk
+from app.services.tutor import FakeTutorService, get_tutor_service
 from app.services.video import FakeVideoService, get_video_service
 
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
@@ -79,6 +80,7 @@ def client(db_session):
     # Belt-and-suspenders on top of DAILY_API_KEY being unset: tests never hit
     # the network even if a developer's local .env happens to set a real key.
     app.dependency_overrides[get_video_service] = lambda: FakeVideoService()
+    app.dependency_overrides[get_tutor_service] = lambda: FakeTutorService()
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
