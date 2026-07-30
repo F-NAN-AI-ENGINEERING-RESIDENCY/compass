@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import DailyIframe from '@daily-co/daily-js'
+import { Check } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
 
-// Wireframe spec screen 09 ("Student in-call"). The "I'm lost" control (idle
-// -> sending -> sent) is per Sprint 2's actual requirements ("one tap, no
-// confirmation needed" + "brief private confirmation that signal was sent").
-// POST /api/lessons/:id/signals is real and merged — tapping this button
-// shows up live on the teacher's dashboard (TeacherLessonDashboardPage).
-//
-// The video call itself is real now too: Daily's embedded call frame,
-// joined via GET /api/lessons/:id/video-token once the lesson goes live.
+// Wireframe spec screen 09 ("Student in-call"). Three things live on this
+// page now:
+//   - the "I'm lost" control (idle -> sending -> idle) plus a private
+//     confirmation toast, per Sprint 2's actual requirements ("one tap, no
+//     confirmation needed" + "brief private confirmation that signal was
+//     sent"). POST /api/lessons/:id/signals is real and merged — tapping
+//     this button shows up live on the teacher's dashboard
+//     (TeacherLessonDashboardPage), aggregated there without naming the
+//     student to classmates.
+//   - the real video call itself: Daily's embedded call frame, joined via
+//     GET /api/lessons/:id/video-token once the lesson goes live.
+//   - lesson-status gating: the video call and the "I'm lost" control both
+//     only render once the lesson is actually live (loading/waiting/ended
+//     states are handled below instead).
 //
 // No lesson title is shown here — LessonResponse has no `title` field at
 // all (even though the Lesson model stores one; see the note in
@@ -24,7 +31,7 @@ export function StudentLessonPage() {
   const [lesson, setLesson] = useState(null)
   const [isLoadingLesson, setIsLoadingLesson] = useState(true)
   const [loadError, setLoadError] = useState(null)
-  // 'idle' -> 'sending' -> 'sent' -> (fades back to 'idle' after a few seconds)
+  // 'idle' -> 'sending' -> 'idle' (the toast below carries the "sent" confirmation)
   const [signalState, setSignalState] = useState('idle')
   const [error, setError] = useState(null)
   const [videoError, setVideoError] = useState(null)
@@ -85,13 +92,41 @@ export function StudentLessonPage() {
     }
   }, [lesson?.status, lessonId, user?.name])
 
+  // PRIVACY NOTE: this confirmation toast lives only in this component — the
+  // student's own lesson view. It must never be added to
+  // TeacherLessonDashboardPage or any other shared/projected view. The whole
+  // point of the "I'm lost" signal is that a classmate (or the teacher, in
+  // the sense of "which student") never sees who sent it; the teacher's
+  // dashboard already surfaces signals in aggregate elsewhere. This toast is
+  // purely local, private feedback to the sender that their tap went through.
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const dismissTimerRef = useRef(null)
+
+  // Clear any pending auto-dismiss timer on unmount, so it never fires a
+  // setState against an unmounted component (a memory-leak warning waiting
+  // to happen if the student navigates away mid-toast).
+  useEffect(() => {
+    return () => clearTimeout(dismissTimerRef.current)
+  }, [])
+
   async function handleImLost() {
     setError(null)
     setSignalState('sending')
     try {
-      await createSignal(lessonId)
-      setSignalState('sent')
-      setTimeout(() => setSignalState('idle'), 4000) // one-tap, no confirmation dialog — just a brief private acknowledgment
+      await createSignal(lessonId) // POST /api/lessons/:id/signals
+      setSignalState('idle')
+
+      // Only show the confirmation on a successful send — a failed send
+      // falls into the catch block below and surfaces the existing error
+      // state instead, never this toast.
+      //
+      // Clear any timer from a previous signal first: if the student sends
+      // a second "I'm lost" later in the same lesson before the first
+      // toast's timer fired, this restarts the auto-dismiss clock cleanly
+      // instead of the old timer cutting the new toast short.
+      clearTimeout(dismissTimerRef.current)
+      setShowConfirmation(true)
+      dismissTimerRef.current = setTimeout(() => setShowConfirmation(false), 3500)
     } catch (err) {
       setError(err.message) // e.g. "Lesson ... is not live" (409) or "You are not enrolled" (403)
       setSignalState('idle')
@@ -127,6 +162,23 @@ export function StudentLessonPage() {
         )}
       </div>
 
+      {/* Private confirmation toast. Always rendered (not conditionally
+          mounted) so the opacity/transform transition below can actually
+          animate in both directions — toggling the class, not the element,
+          is what makes the fade in AND out. `pointer-events: none` at rest
+          keeps it from ever intercepting a click while invisible. Deliberately
+          NOT nested inside the `lesson?.status === 'live'` gate below — it
+          must always be mounted regardless of lesson status for the
+          animation to work correctly in both directions. */}
+      <div
+        role="status"
+        aria-live="polite"
+        className={`signal-confirmation-toast${showConfirmation ? ' signal-confirmation-toast--visible' : ''}`}
+      >
+        <Check size={16} aria-hidden="true" />
+        <span>Your teacher knows. Sit tight.</span>
+      </div>
+
       {/* Control bar, docked at the bottom per the spec — only shown once the
           lesson is actually live, since signaling doesn't make sense before
           or after that (and the backend would 409 on the attempt anyway). */}
@@ -147,15 +199,14 @@ export function StudentLessonPage() {
             onClick={handleImLost}
             disabled={signalState === 'sending'}
             style={{
-              background: signalState === 'sent' ? 'var(--color-clay)' : 'var(--color-cream)',
-              color: signalState === 'sent' ? 'var(--color-text-on-dark)' : 'var(--color-ink)',
+              background: 'var(--color-cream)',
+              color: 'var(--color-ink)',
               fontWeight: 700,
               padding: '1rem 2rem',
             }}
           >
             {signalState === 'idle' && "I'm lost"}
             {signalState === 'sending' && 'Sending…'}
-            {signalState === 'sent' && 'Sent — your teacher can see this'}
           </button>
         </div>
       )}
