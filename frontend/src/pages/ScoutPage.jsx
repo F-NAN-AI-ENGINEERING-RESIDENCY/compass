@@ -73,7 +73,11 @@ export function ScoutPage() {
 
   async function sendMessage(text, messageAttachments = []) {
     const trimmed = text.trim()
-    if (!trimmed && messageAttachments.length === 0) return
+    // Guards both the Enter-key path and the button-click path in one place
+    // (the button's `disabled` below only blocks the click path) — without
+    // this, pressing Enter while Scout is still replying could fire a second
+    // request before the first one resolves.
+    if ((!trimmed && messageAttachments.length === 0) || isThinking) return
     setMessages((current) => [...current, { role: 'user', text: trimmed, attachments: messageAttachments }])
     setIsThinking(true)
     recordEngagement() // "chatting with Scout" is one of the companion's growth triggers
@@ -127,12 +131,38 @@ export function ScoutPage() {
     })
   }
 
-  const canSend = draft.trim().length > 0 || attachments.length > 0
+  // Disabled both when there's nothing to send and while a response is
+  // still pending — a student shouldn't be able to fire a second message
+  // before Scout's first reply comes back.
+  const canSend = (draft.trim().length > 0 || attachments.length > 0) && !isThinking
 
   return (
     <div style={{ height: 'calc(100dvh - 65px)', background: 'var(--color-cream)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ maxWidth: '640px', margin: '0 auto', width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', padding: '1.5rem 1.5rem 0' }}>
-        <h1 style={{ fontSize: '1.1rem', color: 'var(--color-ink-muted)', marginBottom: '1rem' }}>Scout</h1>
+        {/* Header: avatar + name + subtitle, so Scout reads as a guide the
+            student is talking to, not just a bare page title. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <span
+            style={{
+              flexShrink: 0,
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'var(--color-forest)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Logo size={20} color="var(--color-text-on-dark)" />
+          </span>
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--color-forest)', margin: 0 }}>
+              Scout
+            </h1>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)', margin: 0 }}>Your learning guide</p>
+          </div>
+        </div>
 
         {/* Recall queue — same Chip as the suggestion actions below, just
             non-interactive (no onClick), to stay "zero test energy" per the
