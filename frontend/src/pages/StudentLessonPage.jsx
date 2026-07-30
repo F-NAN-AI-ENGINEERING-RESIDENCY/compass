@@ -70,7 +70,13 @@ export function StudentLessonPage() {
       .then(({ roomUrl, token }) => {
         if (cancelled) return
         const callFrame = DailyIframe.createFrame(videoContainerRef.current, {
-          iframeStyle: { width: '100%', height: '100%', border: '0' },
+          // display: 'block' matters here — an <iframe> defaults to
+          // inline-level rendering, and a height:100% on an inline-level
+          // replaced element is inconsistent across browsers (Daily's own
+          // docs call this out). Without it, the call frame can end up
+          // sized to a small intrinsic height instead of filling this
+          // container, which is exactly the "thin letterboxed strip" bug.
+          iframeStyle: { width: '100%', height: '100%', border: '0', display: 'block' },
           showLeaveButton: false, // leaving is tied to the lesson's own lifecycle, not a standalone control here
         })
         callFrameRef.current = callFrame
@@ -135,8 +141,16 @@ export function StudentLessonPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#111' }}>
-      {/* Main stage: real Daily call frame once live, placeholder text otherwise. */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Main stage: real Daily call frame once live, placeholder text
+          otherwise. minHeight: 0 overrides a flex item's default
+          min-height: auto, which otherwise lets content refuse to shrink
+          below its intrinsic size inside a flex-grow parent — a classic
+          reason a flex: 1 child doesn't actually fill the available height.
+          The video container below sets its own explicit width/height:
+          100%, so it still fills this box regardless of the
+          alignItems/justifyContent centering used for the (unsized)
+          loading/waiting/error text states. */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {isLoadingLesson ? (
           <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Loading lesson…</p>
         ) : loadError ? (
