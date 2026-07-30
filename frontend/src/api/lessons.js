@@ -27,3 +27,12 @@ export function updateLessonStatus(lessonId, status) {
     body: JSON.stringify({ status }),
   })
 }
+
+// GET /api/lessons/:id/video-token is real and merged on main. Only callable
+// while the lesson is 'live' (409 otherwise) — the backend provisions the
+// Daily room lazily on first call, not at lesson-creation time. Returns
+// { roomId, roomUrl, provider, token }; roomUrl + token are what Daily's
+// client SDK needs to join the call.
+export function getVideoToken(lessonId) {
+  return apiRequest(`/api/lessons/${lessonId}/video-token`)
+}

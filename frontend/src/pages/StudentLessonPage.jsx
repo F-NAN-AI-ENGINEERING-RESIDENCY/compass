@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getLesson } from '../api/lessons.js'
+import DailyIframe from '@daily-co/daily-js'
+import { useAuth } from '../auth/AuthContext.jsx'
+import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
 
-// Wireframe spec screen 09 ("Student in-call"), scoped to just the part with
-// real backend support: the "I'm lost" control and its three states
-// (idle -> sending -> sent), per Sprint 2's actual requirements ("one tap, no
+// Wireframe spec screen 09 ("Student in-call"). The "I'm lost" control (idle
+// -> sending -> sent) is per Sprint 2's actual requirements ("one tap, no
 // confirmation needed" + "brief private confirmation that signal was sent").
 // POST /api/lessons/:id/signals is real and merged — tapping this button
 // shows up live on the teacher's dashboard (TeacherLessonDashboardPage).
 //
-// The main video-call stage itself (shared screen, other participants) needs
-// Daily.co integration that doesn't exist in this app yet, so that part is a
-// plain placeholder, not a mocked video tile — labeling it as fake video
-// would be more misleading than just saying what's missing.
+// The video call itself is real now too: Daily's embedded call frame,
+// joined via GET /api/lessons/:id/video-token once the lesson goes live.
 //
 // No lesson title is shown here — LessonResponse has no `title` field at
 // all (even though the Lesson model stores one; see the note in
@@ -21,12 +20,17 @@ import { createSignal } from '../api/signals.js'
 // schema change.
 export function StudentLessonPage() {
   const { lessonId } = useParams()
+  const { user } = useAuth()
   const [lesson, setLesson] = useState(null)
   const [isLoadingLesson, setIsLoadingLesson] = useState(true)
   const [loadError, setLoadError] = useState(null)
   // 'idle' -> 'sending' -> 'sent' -> (fades back to 'idle' after a few seconds)
   const [signalState, setSignalState] = useState('idle')
   const [error, setError] = useState(null)
+  const [videoError, setVideoError] = useState(null)
+
+  const videoContainerRef = useRef(null)
+  const callFrameRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +49,42 @@ export function StudentLessonPage() {
     }
   }, [lessonId])
 
+  // Joins the real Daily call once the lesson is live, and tears the frame
+  // down the moment it stops being live (lesson ends) or this page unmounts
+  // — destroy() implicitly leaves the call too, so no separate leave() call
+  // is needed here.
+  useEffect(() => {
+    if (lesson?.status !== 'live' || !videoContainerRef.current) return
+
+    let cancelled = false
+    setVideoError(null)
+
+    getVideoToken(lessonId)
+      .then(({ roomUrl, token }) => {
+        if (cancelled) return
+        const callFrame = DailyIframe.createFrame(videoContainerRef.current, {
+          iframeStyle: { width: '100%', height: '100%', border: '0' },
+          showLeaveButton: false, // leaving is tied to the lesson's own lifecycle, not a standalone control here
+        })
+        callFrameRef.current = callFrame
+        // userName pre-fills Daily's prejoin screen with the student's real
+        // name so they don't have to type it in — we already know who they
+        // are, no reason to ask.
+        callFrame.join({ url: roomUrl, token, userName: user?.name }).catch((err) => {
+          if (!cancelled) setVideoError(err.message)
+        })
+      })
+      .catch((err) => {
+        if (!cancelled) setVideoError(err.message)
+      })
+
+    return () => {
+      cancelled = true
+      callFrameRef.current?.destroy()
+      callFrameRef.current = null
+    }
+  }, [lesson?.status, lessonId, user?.name])
+
   async function handleImLost() {
     setError(null)
     setSignalState('sending')
@@ -60,7 +100,7 @@ export function StudentLessonPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#111' }}>
-      {/* Main stage placeholder — see file-level note above on why this isn't a mocked video tile. */}
+      {/* Main stage: real Daily call frame once live, placeholder text otherwise. */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {isLoadingLesson ? (
           <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Loading lesson…</p>
@@ -72,10 +112,18 @@ export function StudentLessonPage() {
           <p style={{ color: 'var(--color-text-on-dark-muted)' }}>
             Waiting for your teacher to start the lesson…
           </p>
-        ) : (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>
-            Lesson #{lessonId} — shared screen/video isn't built yet (needs Daily.co integration)
-          </p>
+        ) : videoError ? (
+          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't join the call ({videoError})</p>
+        ) : null}
+        {/* Always rendered (not conditionally mounted) once we know the lesson
+            is live, so videoContainerRef.current exists by the time the join
+            effect runs — hidden via display none rather than unmounted while
+            a videoError is showing instead, so a retry wouldn't need a fresh ref. */}
+        {lesson?.status === 'live' && (
+          <div
+            ref={videoContainerRef}
+            style={{ width: '100%', height: '100%', display: videoError ? 'none' : 'block' }}
+          />
         )}
       </div>
 
