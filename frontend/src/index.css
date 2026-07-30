@@ -448,6 +448,20 @@ button.chip:disabled {
   border-radius: 16px 4px 16px 16px;
 }
 
+/* Marks a Scout message as a guiding prompt rather than a direct answer —
+   see the comment in ScoutPage.jsx's ChatBubble for why this exists. Ochre,
+   not clay, so it reads as warm/inviting rather than a warning. */
+.scout-guiding-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+.scout-guiding-icon {
+  flex-shrink: 0;
+  margin-top: 0.15rem; /* optical alignment with the first line of text */
+  color: var(--color-ochre);
+}
+
 /* Input bar shell — one bordered, rounded container holding the attachment
    previews (when present) above the attach/type/send row, so the whole
    thing reads as a single control instead of separate floating pieces. */

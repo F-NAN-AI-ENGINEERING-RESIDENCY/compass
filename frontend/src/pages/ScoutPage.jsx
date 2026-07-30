@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileText, Paperclip, Send, X } from 'lucide-react'
+import { FileText, Paperclip, Send, Sparkles, X } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { Logo } from '../components/Logo.jsx'
 import { AvatarBadge } from '../components/AvatarBadge.jsx'
@@ -229,7 +229,26 @@ function ChatBubble({ role, text, attachments, studentName }) {
             ))}
           </div>
         )}
-        {text && <span>{text}</span>}
+        {/* Scout's whole purpose is to guide with questions, not hand over
+            answers — if its replies looked identical to a normal chatbot's,
+            students would read them with answer-seeking habits and get
+            frustrated when there's no answer to find. This small spark mark
+            is a quiet, ever-present reset of that expectation: it doesn't
+            depend on the message being phrased as a question (Scout often
+            acknowledges/encourages before nudging, e.g. "Good, you're on the
+            right track. What do you notice about…"), it just marks "this is
+            Scout's guiding voice" on every one of its messages. Deliberately
+            NOT a banner/label — a felt cue, not an announced one — and
+            ochre rather than clay so it never reads as a warning. Student
+            messages are untouched; this only ever wraps `isScout` text. */}
+        {text && (isScout ? (
+          <span className="scout-guiding-text">
+            <Sparkles size={13} className="scout-guiding-icon" aria-hidden="true" />
+            <span>{text}</span>
+          </span>
+        ) : (
+          <span>{text}</span>
+        ))}
       </div>
     </div>
   )
