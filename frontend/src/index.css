@@ -550,3 +550,43 @@ button.chip:disabled {
   opacity: 1;
 }
 
+/* Scout's rendered replies (ScoutPage.jsx's ChatBubble, react-markdown +
+   KaTeX output) — resets the block elements' default browser margins so a
+   reply reads as one bubble's worth of text instead of stacked paragraphs
+   with extra whitespace above/below. Only applied to Scout's own messages;
+   the student's typed input never goes through this. */
+.scout-markdown > *:first-child {
+  margin-top: 0;
+}
+.scout-markdown > *:last-child {
+  margin-bottom: 0;
+}
+.scout-markdown p {
+  margin: 0.5rem 0;
+}
+.scout-markdown ul,
+.scout-markdown ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+.scout-markdown li {
+  margin: 0.2rem 0;
+}
+.scout-markdown blockquote {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--color-ink-muted);
+  color: var(--color-ink-muted);
+}
+.scout-markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: rgba(31, 58, 46, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.scout-markdown .katex-display {
+  margin: 0.6rem 0;
+  overflow-x: auto; /* long expressions scroll inside the bubble instead of overflowing the page */
+}
+
