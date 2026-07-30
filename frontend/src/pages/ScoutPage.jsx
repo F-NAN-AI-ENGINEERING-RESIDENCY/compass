@@ -5,30 +5,17 @@ import { Logo } from '../components/Logo.jsx'
 import { AvatarBadge } from '../components/AvatarBadge.jsx'
 import { recordEngagement } from '../lib/companionStorage.js'
 import { recordActivity } from '../lib/activityStorage.js'
-
-// Mocked, deliberately non-random-feeling guiding questions — Scout's whole
-// point per the spec is Socratic (asks questions back, never answers
-// directly). Cycling through a fixed set keeps that voice consistent without
-// pretending there's a real model behind it.
-const GUIDING_QUESTIONS = [
-  "What's the first step you'd try, and why that one?",
-  'What do you already know that might connect to this?',
-  "If you had to guess, what's your best estimate before working it out?",
-  'Where exactly did it stop making sense — right before that, what was clear?',
-  "What would happen if you tried the opposite approach?",
-]
+import { sendTutorMessage } from '../api/tutor.js'
 
 const RECALL_QUEUE = ['Fractions', 'Linear equations', 'Word problems'] // mocked — no spaced-recall backend exists
 
 const QUICK_ACTIONS = ['Give me a hint', 'Explain it differently', 'Check my work']
 
-// Wireframe spec screen 05 ("Scout, the AI tutor"). POST /tutor/message
-// doesn't exist on the backend (Sprint 3, Felix's task — needs the Claude
-// API integration, not started). This mocks Scout's replies with a fixed
-// rotation of guiding questions rather than calling an LLM directly from the
-// browser, which would mean shipping an API key to client-side JS — wrong
-// even for a prototype. Once a real /tutor/message endpoint exists, only
-// handleSend below needs to change.
+// Wireframe spec screen 05 ("Scout, the AI tutor"). POST /api/tutor/message
+// is real and merged on main (Gemini-backed for now, see README's "Known
+// deviations"). Scout has no lesson context here — it's a standalone screen,
+// not opened from within a specific lesson — so sendTutorMessage is called
+// with lessonId omitted.
 export function ScoutPage() {
   const { user } = useAuth()
   const [messages, setMessages] = useState([
@@ -47,20 +34,25 @@ export function ScoutPage() {
     scrollRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, isThinking])
 
-  function sendMessage(text) {
-    if (!text.trim()) return
-    setMessages((current) => [...current, { role: 'user', text: text.trim() }])
+  async function sendMessage(text) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    setMessages((current) => [...current, { role: 'user', text: trimmed }])
     setIsThinking(true)
     recordEngagement() // "chatting with Scout" is one of the companion's growth triggers
     recordActivity({ type: 'scout', label: 'Your conversation with Scout', path: '/scout' })
 
-    // Simulated "thinking" delay so the typing indicator has something to show —
-    // there's no real request in flight here, see the file-level note above.
-    setTimeout(() => {
-      const reply = GUIDING_QUESTIONS[Math.floor(Math.random() * GUIDING_QUESTIONS.length)]
+    try {
+      const { reply } = await sendTutorMessage(trimmed)
       setMessages((current) => [...current, { role: 'scout', text: reply }])
+    } catch (err) {
+      setMessages((current) => [
+        ...current,
+        { role: 'scout', text: "Sorry, I couldn't respond just now — please try again in a moment." },
+      ])
+    } finally {
       setIsThinking(false)
-    }, 900)
+    }
   }
 
   function handleSubmit(event) {
