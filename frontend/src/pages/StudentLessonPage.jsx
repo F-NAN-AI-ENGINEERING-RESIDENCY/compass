@@ -5,6 +5,10 @@ import { Check } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
+// Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
+// Those return/mutate confusion signals with student identity attached —
+// correct for the teacher's dashboard, unsafe here. See the ANONYMITY
+// BOUNDARY comment in api/signals.js before adding any import to this file.
 
 // Wireframe spec screen 09 ("Student in-call"). Three things live on this
 // page now:
@@ -20,6 +24,14 @@ import { createSignal } from '../api/signals.js'
 //   - lesson-status gating: the video call and the "I'm lost" control both
 //     only render once the lesson is actually live (loading/waiting/ended
 //     states are handled below instead).
+//
+// ANONYMITY BOUNDARY: this component must show a student ONLY their own
+// signal confirmation, never any information about other students' signals
+// (not a name, not an anonymized count, not an indicator of any kind). The
+// entire value of "I'm lost" is that classmates can't tell who asked for
+// help — and even a de-identified count can de-anonymize a student in a
+// small class by process of elimination. Do not add a "N classmates are
+// confused" indicator or similar to this page or any component it renders.
 //
 // No lesson title is shown here — LessonResponse has no `title` field at
 // all (even though the Lesson model stores one; see the note in
