@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { createSignal } from '../api/signals.js'
+// Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
+// Those return/mutate confusion signals with student identity attached —
+// correct for the teacher's dashboard, unsafe here. See the ANONYMITY
+// BOUNDARY comment in api/signals.js before adding any import to this file.
 
 // Wireframe spec screen 09 ("Student in-call"), scoped to just the part with
 // real backend support: the "I'm lost" control and its states (idle ->
@@ -10,6 +14,14 @@ import { createSignal } from '../api/signals.js'
 // confirmation that signal was sent"). POST /api/lessons/:id/signals is real
 // and merged — tapping this button shows up live on the teacher's dashboard
 // (TeacherLessonDashboardPage), aggregated there without naming the student.
+//
+// ANONYMITY BOUNDARY: this component must show a student ONLY their own
+// signal confirmation, never any information about other students' signals
+// (not a name, not an anonymized count, not an indicator of any kind). The
+// entire value of "I'm lost" is that classmates can't tell who asked for
+// help — and even a de-identified count can de-anonymize a student in a
+// small class by process of elimination. Do not add a "N classmates are
+// confused" indicator or similar to this page or any component it renders.
 //
 // The main video-call stage itself (shared screen, other participants) needs
 // Daily.co integration that doesn't exist in this app yet, so that part is a
