@@ -336,6 +336,42 @@ h3 {
   transform: scale(1.03);
 }
 
+/* Private "I'm lost" confirmation toast (src/pages/StudentLessonPage.jsx).
+   PRIVATE means private in every sense here — this class must only ever be
+   used in the sending student's own view, never in a shared/teacher/
+   projected component. Always mounted, visibility toggled via the
+   --visible modifier, so opacity/transform can transition both in and out
+   (removing the element from the DOM would only animate one direction). */
+.signal-confirmation-toast {
+  position: fixed;
+  bottom: 6.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-pill);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 20;
+}
+.signal-confirmation-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-confirmation-toast {
+    transition: opacity 0.4s ease;
+    transform: translateX(-50%);
+  }
+}
+
 /* Error message shown under a form when a request fails (bad credentials,
    duplicate account, etc). Clay from the confidence ramp instead of red,
    consistent with the spec's "red is never used" rule. */
