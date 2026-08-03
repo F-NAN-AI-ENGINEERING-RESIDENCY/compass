@@ -5,6 +5,7 @@ import { Check } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
+import { LessonReflection } from '../components/LessonReflection.jsx'
 // Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
 // Those return/mutate confusion signals with student identity attached —
 // correct for the teacher's dashboard, unsafe here. See the ANONYMITY
@@ -168,7 +169,7 @@ export function StudentLessonPage() {
         ) : loadError ? (
           <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't load this lesson ({loadError})</p>
         ) : lesson.status === 'ended' ? (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>This lesson has ended.</p>
+          <LessonReflection lessonId={lessonId} />
         ) : lesson.status !== 'live' ? (
           <p style={{ color: 'var(--color-text-on-dark-muted)' }}>
             Waiting for your teacher to start the lesson…
