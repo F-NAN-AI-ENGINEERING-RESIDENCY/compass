@@ -39,6 +39,12 @@ services:
       # webhook with Daily — see README/deploy notes.
       - key: DAILY_WEBHOOK_SECRET
         sync: false
+      # Activates real Groq-backed transcription (app.services.transcription).
+      # Blank TRANSCRIPTION_PROVIDER/GROQ_API_KEY keeps the stub fallback.
+      - key: TRANSCRIPTION_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
 
   - type: web
     name: compass-frontend

@@ -5,7 +5,7 @@ import httpx
 
 from app.config import settings
 
-OPENAI_API_BASE = "https://api.openai.com/v1"
+GROQ_API_BASE = "https://api.groq.com/openai/v1"
 
 
 class TranscriptSegment(NamedTuple):
@@ -20,15 +20,18 @@ class TranscriptionService(ABC):
         """Downloads the audio at audio_url and returns segment-level transcript chunks."""
 
 
-class OpenAITranscriptionService(TranscriptionService):
-    """Calls OpenAI's Whisper (whisper-1) for segment-level timestamps. Field
-    names follow OpenAI's documented audio/transcriptions API as of this
-    writing — reverify against current docs before depending on this in
-    production, since API shapes can drift."""
+class GroqTranscriptionService(TranscriptionService):
+    """Calls Groq's hosted Whisper (whisper-large-v3) for segment-level
+    timestamps. Groq's API is deliberately OpenAI-compatible — same
+    audio/transcriptions request/response shape — so this mirrors what an
+    OpenAI-backed implementation would look like, just pointed at Groq's
+    base URL and model name. Field names follow the documented API as of
+    this writing — reverify against current docs before depending on this
+    in production, since API shapes can drift."""
 
     def __init__(self, api_key: str):
         self._client = httpx.Client(
-            base_url=OPENAI_API_BASE, headers={"Authorization": f"Bearer {api_key}"}, timeout=120.0
+            base_url=GROQ_API_BASE, headers={"Authorization": f"Bearer {api_key}"}, timeout=120.0
         )
 
     def transcribe(self, audio_url: str) -> list:
@@ -38,7 +41,7 @@ class OpenAITranscriptionService(TranscriptionService):
         response = self._client.post(
             "/audio/transcriptions",
             data={
-                "model": "whisper-1",
+                "model": "whisper-large-v3",
                 "response_format": "verbose_json",
                 "timestamp_granularities[]": "segment",
             },
@@ -72,10 +75,10 @@ _transcription_service = None
 def get_transcription_service() -> TranscriptionService:
     global _transcription_service
     if _transcription_service is None:
-        if settings.transcription_provider == "openai":
-            if not settings.openai_api_key:
-                raise RuntimeError("TRANSCRIPTION_PROVIDER=openai requires OPENAI_API_KEY to be set")
-            _transcription_service = OpenAITranscriptionService(settings.openai_api_key)
+        if settings.transcription_provider == "groq":
+            if not settings.groq_api_key:
+                raise RuntimeError("TRANSCRIPTION_PROVIDER=groq requires GROQ_API_KEY to be set")
+            _transcription_service = GroqTranscriptionService(settings.groq_api_key)
         else:
             _transcription_service = StubTranscriptionService()
     return _transcription_service
