@@ -7,6 +7,7 @@ import { Chip } from '../components/Chip.jsx'
 import { recordEngagement } from '../lib/companionStorage.js'
 import { recordActivity } from '../lib/activityStorage.js'
 import { sendTutorMessage } from '../api/tutor.js'
+import { useSearchParams } from 'react-router-dom'
 
 const RECALL_QUEUE = ['Fractions', 'Linear equations', 'Word problems'] // mocked — no spaced-recall backend exists
 
@@ -26,6 +27,7 @@ const MAX_TEXTAREA_HEIGHT = 160
 // only the typed message text does.
 export function ScoutPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [messages, setMessages] = useState([
     {
       role: 'scout',
@@ -70,6 +72,17 @@ export function ScoutPage() {
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`
   }, [draft])
+
+  // Arriving from the post-lesson reflection's "work through X with Scout?"
+  // handoff (LessonReflection.jsx navigates to /scout?topic=...) pre-fills
+  // the draft with that context — it does NOT auto-send, so the student
+  // still chooses when (and whether) to actually start that conversation.
+  // Runs once on arrival only; not meant to react to later param changes.
+  useEffect(() => {
+    const topic = searchParams.get('topic')
+    if (topic) setDraft(`I'm stuck on ${topic} — can you help me understand it?`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function sendMessage(text, messageAttachments = []) {
     const trimmed = text.trim()

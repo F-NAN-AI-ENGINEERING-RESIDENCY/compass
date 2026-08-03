@@ -372,6 +372,44 @@ h3 {
   }
 }
 
+/* Post-lesson reflection (src/components/LessonReflection.jsx). Deliberately
+   NOT the wellbeing journal's look (no Fraunces, no ruled lines) — this is a
+   lesson-tied, teacher-visible check-in, not the private open-ended journal,
+   and should read as visually distinct from it. Plain --color-cream (not
+   --color-cream-dim) so the cream-dim chips below have something to sit on
+   top of, the same layering .card normally has against the page background. */
+.reflection-card {
+  background: var(--color-cream);
+  border-radius: var(--radius-card);
+  padding: 1.5rem;
+  max-width: 440px;
+  width: 100%;
+  text-align: left;
+}
+
+/* Warm, tappable chip — cream-dim at rest, fills forest + on-dark text once
+   picked. Shared by both prompts; multi-select vs. single-select is just
+   whichever click handler the caller wires up, not a style difference. */
+.reflection-chip {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--color-forest);
+  background: var(--color-cream-dim);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.reflection-chip:hover {
+  background: var(--color-olive);
+  color: var(--color-text-on-dark);
+}
+.reflection-chip[aria-pressed='true'] {
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+}
+
 /* Error message shown under a form when a request fails (bad credentials,
    duplicate account, etc). Clay from the confidence ramp instead of red,
    consistent with the spec's "red is never used" rule. */
