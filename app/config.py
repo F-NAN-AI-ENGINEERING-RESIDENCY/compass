@@ -15,14 +15,14 @@ class Settings(BaseSettings):
     # Auth
     session_expire_hours: int = 24
 
-    # Video (Daily.co) + transcription (OpenAI Whisper). Provider selection is
+    # Video (Daily.co) + transcription (Groq Whisper). Provider selection is
     # config-driven and defaults to the network-free stub so no one needs real
     # vendor credentials to run the app or the test suite.
     video_provider: str = "stub"
     transcription_provider: str = "stub"
     daily_api_key: Optional[str] = None
     daily_webhook_secret: Optional[str] = None
-    openai_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
 
     # "Continue with Google": the OAuth client id ID tokens must be issued
     # for (verified as the `aud` claim) — required before POST /api/auth/google
