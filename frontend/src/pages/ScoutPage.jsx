@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { FileText, Paperclip, Send, X } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { Logo } from '../components/Logo.jsx'
 import { AvatarBadge } from '../components/AvatarBadge.jsx'
@@ -242,7 +246,20 @@ function ChatBubble({ role, text, attachments, studentName }) {
             ))}
           </div>
         )}
-        {text && <span>{text}</span>}
+        {text && (isScout ? (
+          // Gemini's replies routinely come back as markdown + LaTeX
+          // (**bold**, > blockquotes, $\frac{a}{b}$, numbered lists) — render
+          // it properly instead of dumping the raw syntax as text. Only
+          // Scout's own messages go through this: the student's typed input
+          // is never Scout's markdown, so it stays plain text below.
+          <div className="scout-markdown">
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {text}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <span>{text}</span>
+        ))}
       </div>
     </div>
   )
