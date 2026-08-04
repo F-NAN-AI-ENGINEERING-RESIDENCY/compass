@@ -8,6 +8,7 @@ import { createSignal } from '../api/signals.js'
 import { LessonReflection } from '../components/LessonReflection.jsx'
 import { ChatPanel } from '../components/ChatPanel.jsx'
 import { lessonSocketUrl } from '../lib/lessonSocket.js'
+import { keepDailyFrameSized } from '../lib/dailyCallFrame.js'
 // Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
 // Those return/mutate confusion signals with student identity attached —
 // correct for the teacher's dashboard, unsafe here. See the ANONYMITY
@@ -53,6 +54,7 @@ export function StudentLessonPage() {
 
   const videoContainerRef = useRef(null)
   const callFrameRef = useRef(null)
+  const stopResizeSyncRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -95,6 +97,14 @@ export function StudentLessonPage() {
           showLeaveButton: false, // leaving is tied to the lesson's own lifecycle, not a standalone control here
         })
         callFrameRef.current = callFrame
+        // Works around a separate, deeper Daily bug than the display:block
+        // one above: even with a correctly-sized iframe box, Daily's own
+        // internal video-tile layout can still render at a stale, undersized
+        // height (confirmed live — the iframe's own chrome spans full width
+        // fine, but the actual video tiles sit in a thin strip with black
+        // bars above/below). See lib/dailyCallFrame.js for the full story —
+        // this measures our real container and re-sizes the iframe with it.
+        stopResizeSyncRef.current = keepDailyFrameSized(videoContainerRef.current)
         // userName pre-fills Daily's prejoin screen with the student's real
         // name so they don't have to type it in — we already know who they
         // are, no reason to ask.
@@ -108,6 +118,8 @@ export function StudentLessonPage() {
 
     return () => {
       cancelled = true
+      stopResizeSyncRef.current?.()
+      stopResizeSyncRef.current = null
       callFrameRef.current?.destroy()
       callFrameRef.current = null
     }

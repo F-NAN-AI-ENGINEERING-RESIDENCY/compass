@@ -4,6 +4,7 @@ import DailyIframe from '@daily-co/daily-js'
 import { getDashboard } from '../api/signals.js'
 import { getVideoToken } from '../api/lessons.js'
 import { useAuth } from '../auth/AuthContext.jsx'
+import { keepDailyFrameSized } from '../lib/dailyCallFrame.js'
 
 // Wireframe spec screen 11 ("Teacher in-call") — "sharing slides with the
 // class pulse docked live (same data as 1j)." The main stage is a real Daily
@@ -23,6 +24,7 @@ export function TeacherInCallPage() {
 
   const videoContainerRef = useRef(null)
   const callFrameRef = useRef(null)
+  const stopResizeSyncRef = useRef(null)
 
   // Joins the real Daily call on mount, tears the frame down on unmount —
   // destroy() implicitly leaves the call too, so no separate leave() call.
@@ -44,6 +46,14 @@ export function TeacherInCallPage() {
           showLeaveButton: false, // leaving is tied to the lesson's own lifecycle, not a standalone control here
         })
         callFrameRef.current = callFrame
+        // Works around a separate, deeper Daily bug than the display:block
+        // one above: even with a correctly-sized iframe box, Daily's own
+        // internal video-tile layout can still render at a stale, undersized
+        // height (confirmed live — the iframe's own chrome spans full width
+        // fine, but the actual video tiles sit in a thin strip with black
+        // bars above/below). See lib/dailyCallFrame.js for the full story —
+        // this measures our real container and re-sizes the iframe with it.
+        stopResizeSyncRef.current = keepDailyFrameSized(videoContainerRef.current)
         callFrame.join({ url: roomUrl, token, userName: user?.name }).catch((err) => {
           if (!cancelled) setVideoError(err.message)
         })
@@ -54,6 +64,8 @@ export function TeacherInCallPage() {
 
     return () => {
       cancelled = true
+      stopResizeSyncRef.current?.()
+      stopResizeSyncRef.current = null
       callFrameRef.current?.destroy()
       callFrameRef.current = null
     }
