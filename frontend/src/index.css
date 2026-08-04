@@ -766,3 +766,165 @@ button.chip:disabled {
   overflow-x: auto; /* long expressions scroll inside the bubble instead of overflowing the page */
 }
 
+/* Student live-lesson view (StudentLessonPage.jsx) — main video stage +
+   chat sidebar, side by side, Zoom/Meet-style. minHeight: 0 lets this row
+   actually shrink to fit above the control bar instead of a flex child's
+   default min-height: auto forcing the page taller than the viewport. */
+.lesson-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* Below tablet width there isn't room for stage + sidebar side by side, so
+   the chat panel becomes a full-width overlay docked over the video instead
+   of squeezing the stage down to nothing. This app's laptop-first, so this
+   is a fallback, not the primary target. */
+@media (max-width: 860px) {
+  .lesson-body {
+    position: relative;
+  }
+  .lesson-chat-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+}
+
+/* Chat toggle in the control bar — on-dark outline like Layout.jsx's
+   "Log out" button, so it reads as part of the same forest-green toolbar as
+   "I'm lost" rather than a cream pill floating on a dark bar. Defined fully
+   in CSS (not inline style + a class) so the aria-pressed override below can
+   actually win — an inline `style` color always beats a stylesheet rule,
+   which silently made the label invisible when both tried to set color. */
+.lesson-chat-toggle {
+  background: transparent;
+  color: var(--color-text-on-dark);
+  border: 1.5px solid var(--color-text-on-dark-muted);
+}
+.lesson-chat-toggle:hover {
+  border-color: var(--color-text-on-dark);
+}
+.lesson-chat-toggle[aria-pressed='true'] {
+  background: var(--color-text-on-dark);
+  color: var(--color-forest);
+  border-color: var(--color-text-on-dark);
+}
+
+.lesson-chat-panel {
+  flex-shrink: 0;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-cream);
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.lesson-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-cream-dim);
+}
+.lesson-chat-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+}
+.lesson-chat-close:hover {
+  background: var(--color-cream-dim);
+  color: var(--color-ink);
+}
+
+.lesson-chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.lesson-chat-empty {
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+.lesson-chat-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.lesson-chat-message-sender {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.lesson-chat-message-time {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+}
+.lesson-chat-message-text {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+}
+
+.lesson-chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--color-cream-dim);
+}
+.lesson-chat-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-cream-dim);
+  background: white;
+  color: var(--color-ink);
+}
+.lesson-chat-input:focus {
+  outline: none;
+  border-color: var(--color-forest);
+}
+.lesson-chat-input:disabled {
+  background: var(--color-cream-dim);
+  color: var(--color-ink-muted);
+}
+.lesson-chat-send {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-forest);
+  color: var(--color-text-on-dark);
+  cursor: pointer;
+}
+.lesson-chat-send:disabled {
+  background: var(--color-cream-dim);
+  color: var(--color-ink-muted);
+  cursor: not-allowed;
+}
+
