@@ -7,8 +7,8 @@ import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
 import { LessonReflection } from '../components/LessonReflection.jsx'
 import { ChatPanel } from '../components/ChatPanel.jsx'
-import { lessonSocketUrl } from '../lib/lessonSocket.js'
 import { keepDailyFrameSized } from '../lib/dailyCallFrame.js'
+import { useDailyChat } from '../hooks/useDailyChat.js'
 // Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
 // Those return/mutate confusion signals with student identity attached —
 // correct for the teacher's dashboard, unsafe here. See the ANONYMITY
@@ -55,6 +55,10 @@ export function StudentLessonPage() {
   const videoContainerRef = useRef(null)
   const callFrameRef = useRef(null)
   const stopResizeSyncRef = useRef(null)
+  // Also held in state (not just the ref above) so useDailyChat's effect
+  // re-runs once the call frame actually exists — refs don't trigger
+  // re-renders, so a hook keyed off one would never see it appear.
+  const [callFrame, setCallFrame] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -86,7 +90,7 @@ export function StudentLessonPage() {
     getVideoToken(lessonId)
       .then(({ roomUrl, token }) => {
         if (cancelled) return
-        const callFrame = DailyIframe.createFrame(videoContainerRef.current, {
+        const frame = DailyIframe.createFrame(videoContainerRef.current, {
           // display: 'block' matters here — an <iframe> defaults to
           // inline-level rendering, and a height:100% on an inline-level
           // replaced element is inconsistent across browsers (Daily's own
@@ -96,7 +100,7 @@ export function StudentLessonPage() {
           iframeStyle: { width: '100%', height: '100%', border: '0', display: 'block' },
           showLeaveButton: false, // leaving is tied to the lesson's own lifecycle, not a standalone control here
         })
-        callFrameRef.current = callFrame
+        callFrameRef.current = frame
         // Works around a separate, deeper Daily bug than the display:block
         // one above: even with a correctly-sized iframe box, Daily's own
         // internal video-tile layout can still render at a stale, undersized
@@ -108,9 +112,10 @@ export function StudentLessonPage() {
         // userName pre-fills Daily's prejoin screen with the student's real
         // name so they don't have to type it in — we already know who they
         // are, no reason to ask.
-        callFrame.join({ url: roomUrl, token, userName: user?.name }).catch((err) => {
+        frame.join({ url: roomUrl, token, userName: user?.name }).catch((err) => {
           if (!cancelled) setVideoError(err.message)
         })
+        setCallFrame(frame) // triggers useDailyChat's effect to attach its listeners
       })
       .catch((err) => {
         if (!cancelled) setVideoError(err.message)
@@ -122,73 +127,15 @@ export function StudentLessonPage() {
       stopResizeSyncRef.current = null
       callFrameRef.current?.destroy()
       callFrameRef.current = null
+      setCallFrame(null)
     }
   }, [lesson?.status, lessonId, user?.name])
 
   // Chat panel, docked on the right (Zoom/Meet-style), toggled via the
-  // control bar below.
+  // control bar below. Real delivery — broadcast and private — over Daily's
+  // own sendAppMessage()/'app-message' API; see hooks/useDailyChat.js.
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [chatMessages, setChatMessages] = useState([])
-  const [isSocketOpen, setIsSocketOpen] = useState(false)
-  const socketRef = useRef(null)
-
-  // Opens the lesson's real WebSocket once it's live, same lifecycle as the
-  // video-join effect above.
-  //
-  // NOT WIRED SERVER-SIDE YET: app/websockets/dashboard_ws.py's message loop
-  // only recognizes {"type": "ping"} today — everything else it receives,
-  // including the {"type": "chat", ...} frames sent below, is silently
-  // dropped with no rebroadcast to other connected clients. This effect and
-  // ChatPanel are written to handle incoming {type: "chat"} messages the
-  // moment the backend adds that support (mirroring how it already
-  // broadcasts signal/lesson events via app/websockets/broadcaster.py) —
-  // until then, a sent message only ever reaches the sender's own browser,
-  // via the local-echo in handleSendChatMessage below.
-  useEffect(() => {
-    if (lesson?.status !== 'live') return
-
-    const socket = new WebSocket(lessonSocketUrl(lessonId))
-    socketRef.current = socket
-
-    socket.onopen = () => setIsSocketOpen(true)
-    socket.onclose = () => setIsSocketOpen(false)
-    socket.onerror = () => setIsSocketOpen(false)
-    socket.onmessage = (event) => {
-      let message
-      try {
-        message = JSON.parse(event.data)
-      } catch {
-        return // not JSON — ignore rather than crash on a stray frame
-      }
-      if (message.type === 'chat') {
-        setChatMessages((current) => [...current, message.data])
-      }
-    }
-
-    return () => {
-      socket.close()
-      socketRef.current = null
-      setIsSocketOpen(false)
-    }
-  }, [lesson?.status, lessonId])
-
-  function handleSendChatMessage(text) {
-    const trimmed = text.trim()
-    if (!trimmed) return
-    const message = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      senderName: user?.name || 'You',
-      text: trimmed,
-      sentAt: new Date().toISOString(),
-    }
-    // Local-echo immediately — see the NOT WIRED SERVER-SIDE note above.
-    // Without this, the sender wouldn't see their own message appear at all,
-    // since the server doesn't send it back yet.
-    setChatMessages((current) => [...current, message])
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: 'chat', data: message }))
-    }
-  }
+  const { messages: chatMessages, participants, sendMessage: sendChatMessage, isReady: isChatReady } = useDailyChat(callFrame, user?.name)
 
   // PRIVACY NOTE: this confirmation toast lives only in this component — the
   // student's own lesson view. It must never be added to
@@ -276,8 +223,10 @@ export function StudentLessonPage() {
         {isChatOpen && lesson?.status === 'live' && (
           <ChatPanel
             messages={chatMessages}
-            isConnected={isSocketOpen}
-            onSend={handleSendChatMessage}
+            participants={participants}
+            selfSessionId={participants.local?.session_id}
+            isReady={isChatReady}
+            onSend={sendChatMessage}
             onClose={() => setIsChatOpen(false)}
           />
         )}

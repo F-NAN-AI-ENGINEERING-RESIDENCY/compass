@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, X } from 'lucide-react'
 
-// Docked chat sidebar for the student's live-lesson view (StudentLessonPage.jsx).
-//
-// NOT WIRED SERVER-SIDE YET: messages send over the lesson's real WebSocket
-// (see lib/lessonSocket.js), but app/websockets/dashboard_ws.py's message
-// loop only recognizes one incoming type today — {"type": "ping"} — and
-// silently drops anything else, with no relay to other connected clients.
-// So right now a sent message only ever appears in the SENDER's own panel
-// (via the local-echo in StudentLessonPage's handleSendChatMessage), never
-// on a classmate's or the teacher's screen. This component itself needs NO
-// changes once that's added: it already renders whatever `messages` it's
-// given, and StudentLessonPage already listens for incoming {type: 'chat'}
-// frames — the only missing piece is the server rebroadcasting them.
-export function ChatPanel({ messages, isConnected, onSend, onClose }) {
+// Docked chat sidebar for a live lesson (StudentLessonPage.jsx and
+// TeacherInCallPage.jsx) — Zoom/Meet-style: broadcast to everyone by
+// default, or pick one specific person from the "To" dropdown for a private
+// message. Actual delivery is Daily's own sendAppMessage()/'app-message' API
+// (see hooks/useDailyChat.js) — real, not mocked, no backend involved.
+export function ChatPanel({ messages, participants, selfSessionId, isReady, onSend, onClose }) {
   const [draft, setDraft] = useState('')
+  const [recipientId, setRecipientId] = useState('') // '' = everyone
   const scrollRef = useRef(null)
 
   // Auto-scroll to the newest message, same bottom-anchored pattern as
@@ -23,10 +17,17 @@ export function ChatPanel({ messages, isConnected, onSend, onClose }) {
     scrollRef.current?.scrollIntoView({ block: 'end' })
   }, [messages])
 
+  // Other people in the call, for the "message privately" dropdown — self
+  // is excluded, since messaging yourself isn't a thing.
+  const otherParticipants = Object.values(participants).filter(
+    (participant) => participant.session_id !== selfSessionId,
+  )
+
   function handleSubmit(event) {
     event.preventDefault()
     if (!draft.trim()) return
-    onSend(draft)
+    const recipient = otherParticipants.find((participant) => participant.session_id === recipientId)
+    onSend(draft, recipientId || null, recipient?.user_name)
     setDraft('')
   }
 
@@ -39,6 +40,25 @@ export function ChatPanel({ messages, isConnected, onSend, onClose }) {
         </button>
       </div>
 
+      {otherParticipants.length > 0 && (
+        <div className="lesson-chat-recipient-row">
+          <label htmlFor="lesson-chat-recipient">To</label>
+          <select
+            id="lesson-chat-recipient"
+            value={recipientId}
+            onChange={(event) => setRecipientId(event.target.value)}
+            className="lesson-chat-recipient-select"
+          >
+            <option value="">Everyone</option>
+            {otherParticipants.map((participant) => (
+              <option key={participant.session_id} value={participant.session_id}>
+                {participant.user_name || 'Someone'} (private)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="lesson-chat-messages">
         {messages.length === 0 ? (
           <p className="lesson-chat-empty">No messages yet.</p>
@@ -47,6 +67,11 @@ export function ChatPanel({ messages, isConnected, onSend, onClose }) {
             <div key={message.id} className="lesson-chat-message">
               <div className="lesson-chat-message-meta">
                 <span className="lesson-chat-message-sender">{message.senderName}</span>
+                {message.toSessionId && (
+                  <span className="lesson-chat-message-private">
+                    {message.fromId === 'local' ? `to ${message.toName || 'them'} · private` : 'private'}
+                  </span>
+                )}
                 <span className="lesson-chat-message-time">{formatTime(message.sentAt)}</span>
               </div>
               <p className="lesson-chat-message-text">{message.text}</p>
@@ -61,16 +86,11 @@ export function ChatPanel({ messages, isConnected, onSend, onClose }) {
           type="text"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={isConnected ? 'Message the class…' : 'Connecting…'}
-          disabled={!isConnected}
+          placeholder={!isReady ? 'Connecting…' : recipientId ? 'Message privately…' : 'Message everyone…'}
+          disabled={!isReady}
           className="lesson-chat-input"
         />
-        <button
-          type="submit"
-          className="lesson-chat-send"
-          disabled={!isConnected || !draft.trim()}
-          aria-label="Send message"
-        >
+        <button type="submit" className="lesson-chat-send" disabled={!isReady || !draft.trim()} aria-label="Send message">
           <Send size={16} aria-hidden="true" />
         </button>
       </form>
