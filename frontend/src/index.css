@@ -258,7 +258,8 @@ h3 {
 @media (prefers-reduced-motion: reduce) {
   .landing-fade-in,
   .landing-live-dot,
-  .landing-orbit {
+  .landing-orbit,
+  .logo-signal-dot {
     animation: none !important;
   }
   .landing-dashboard-card,
@@ -334,6 +335,9 @@ h3 {
 }
 .logo-wordmark:hover {
   transform: scale(1.03);
+}
+.logo-signal-dot {
+  animation: landing-pulse 1.8s ease-in-out infinite;
 }
 
 /* Private "I'm lost" confirmation toast (src/pages/StudentLessonPage.jsx).

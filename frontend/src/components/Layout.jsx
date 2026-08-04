@@ -22,7 +22,7 @@ export function Layout() {
           background: 'var(--color-forest)',
         }}
       >
-        <LogoWordmark color="var(--color-text-on-dark)" shade="var(--color-text-on-dark-muted)" />
+        <LogoWordmark color="var(--color-text-on-dark)" />
         <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           {user ? (
             // Signed in: show where you can go, who's signed in, and a way to sign out.
