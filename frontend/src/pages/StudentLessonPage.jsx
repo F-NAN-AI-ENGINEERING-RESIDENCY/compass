@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import DailyIframe from '@daily-co/daily-js'
-import { Check } from 'lucide-react'
+import { Check, MessageSquare } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { getLesson, getVideoToken } from '../api/lessons.js'
 import { createSignal } from '../api/signals.js'
 import { LessonReflection } from '../components/LessonReflection.jsx'
+import { ChatPanel } from '../components/ChatPanel.jsx'
+import { lessonSocketUrl } from '../lib/lessonSocket.js'
 // Deliberately NOT importing getDashboard/resolveSignal from api/signals.js.
 // Those return/mutate confusion signals with student identity attached —
 // correct for the teacher's dashboard, unsafe here. See the ANONYMITY
@@ -111,6 +113,71 @@ export function StudentLessonPage() {
     }
   }, [lesson?.status, lessonId, user?.name])
 
+  // Chat panel, docked on the right (Zoom/Meet-style), toggled via the
+  // control bar below.
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [chatMessages, setChatMessages] = useState([])
+  const [isSocketOpen, setIsSocketOpen] = useState(false)
+  const socketRef = useRef(null)
+
+  // Opens the lesson's real WebSocket once it's live, same lifecycle as the
+  // video-join effect above.
+  //
+  // NOT WIRED SERVER-SIDE YET: app/websockets/dashboard_ws.py's message loop
+  // only recognizes {"type": "ping"} today — everything else it receives,
+  // including the {"type": "chat", ...} frames sent below, is silently
+  // dropped with no rebroadcast to other connected clients. This effect and
+  // ChatPanel are written to handle incoming {type: "chat"} messages the
+  // moment the backend adds that support (mirroring how it already
+  // broadcasts signal/lesson events via app/websockets/broadcaster.py) —
+  // until then, a sent message only ever reaches the sender's own browser,
+  // via the local-echo in handleSendChatMessage below.
+  useEffect(() => {
+    if (lesson?.status !== 'live') return
+
+    const socket = new WebSocket(lessonSocketUrl(lessonId))
+    socketRef.current = socket
+
+    socket.onopen = () => setIsSocketOpen(true)
+    socket.onclose = () => setIsSocketOpen(false)
+    socket.onerror = () => setIsSocketOpen(false)
+    socket.onmessage = (event) => {
+      let message
+      try {
+        message = JSON.parse(event.data)
+      } catch {
+        return // not JSON — ignore rather than crash on a stray frame
+      }
+      if (message.type === 'chat') {
+        setChatMessages((current) => [...current, message.data])
+      }
+    }
+
+    return () => {
+      socket.close()
+      socketRef.current = null
+      setIsSocketOpen(false)
+    }
+  }, [lesson?.status, lessonId])
+
+  function handleSendChatMessage(text) {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    const message = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      senderName: user?.name || 'You',
+      text: trimmed,
+      sentAt: new Date().toISOString(),
+    }
+    // Local-echo immediately — see the NOT WIRED SERVER-SIDE note above.
+    // Without this, the sender wouldn't see their own message appear at all,
+    // since the server doesn't send it back yet.
+    setChatMessages((current) => [...current, message])
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: 'chat', data: message }))
+    }
+  }
+
   // PRIVACY NOTE: this confirmation toast lives only in this component — the
   // student's own lesson view. It must never be added to
   // TeacherLessonDashboardPage or any other shared/projected view. The whole
@@ -154,37 +221,52 @@ export function StudentLessonPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#111' }}>
-      {/* Main stage: real Daily call frame once live, placeholder text
-          otherwise. minHeight: 0 overrides a flex item's default
-          min-height: auto, which otherwise lets content refuse to shrink
-          below its intrinsic size inside a flex-grow parent — a classic
-          reason a flex: 1 child doesn't actually fill the available height.
-          The video container below sets its own explicit width/height:
-          100%, so it still fills this box regardless of the
-          alignItems/justifyContent centering used for the (unsized)
-          loading/waiting/error text states. */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {isLoadingLesson ? (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Loading lesson…</p>
-        ) : loadError ? (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't load this lesson ({loadError})</p>
-        ) : lesson.status === 'ended' ? (
-          <LessonReflection lessonId={lessonId} />
-        ) : lesson.status !== 'live' ? (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>
-            Waiting for your teacher to start the lesson…
-          </p>
-        ) : videoError ? (
-          <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't join the call ({videoError})</p>
-        ) : null}
-        {/* Always rendered (not conditionally mounted) once we know the lesson
-            is live, so videoContainerRef.current exists by the time the join
-            effect runs — hidden via display none rather than unmounted while
-            a videoError is showing instead, so a retry wouldn't need a fresh ref. */}
-        {lesson?.status === 'live' && (
-          <div
-            ref={videoContainerRef}
-            style={{ width: '100%', height: '100%', display: videoError ? 'none' : 'block' }}
+      {/* Body: main stage + (optional) chat sidebar, side by side —
+          Zoom/Meet-style. flex: 1/minHeight: 0 here so this row fills
+          everything above the control bar; the control bar itself sits
+          outside this row so it spans the full width underneath both. */}
+      <div className="lesson-body">
+        {/* Main stage: real Daily call frame once live, placeholder text
+            otherwise. minHeight: 0 overrides a flex item's default
+            min-height: auto, which otherwise lets content refuse to shrink
+            below its intrinsic size inside a flex-grow parent — a classic
+            reason a flex: 1 child doesn't actually fill the available height.
+            The video container below sets its own explicit width/height:
+            100%, so it still fills this box regardless of the
+            alignItems/justifyContent centering used for the (unsized)
+            loading/waiting/error text states. */}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isLoadingLesson ? (
+            <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Loading lesson…</p>
+          ) : loadError ? (
+            <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't load this lesson ({loadError})</p>
+          ) : lesson.status === 'ended' ? (
+            <LessonReflection lessonId={lessonId} />
+          ) : lesson.status !== 'live' ? (
+            <p style={{ color: 'var(--color-text-on-dark-muted)' }}>
+              Waiting for your teacher to start the lesson…
+            </p>
+          ) : videoError ? (
+            <p style={{ color: 'var(--color-text-on-dark-muted)' }}>Couldn't join the call ({videoError})</p>
+          ) : null}
+          {/* Always rendered (not conditionally mounted) once we know the lesson
+              is live, so videoContainerRef.current exists by the time the join
+              effect runs — hidden via display none rather than unmounted while
+              a videoError is showing instead, so a retry wouldn't need a fresh ref. */}
+          {lesson?.status === 'live' && (
+            <div
+              ref={videoContainerRef}
+              style={{ width: '100%', height: '100%', display: videoError ? 'none' : 'block' }}
+            />
+          )}
+        </div>
+
+        {isChatOpen && lesson?.status === 'live' && (
+          <ChatPanel
+            messages={chatMessages}
+            isConnected={isSocketOpen}
+            onSend={handleSendChatMessage}
+            onClose={() => setIsChatOpen(false)}
           />
         )}
       </div>
@@ -234,6 +316,19 @@ export function StudentLessonPage() {
           >
             {signalState === 'idle' && "I'm lost"}
             {signalState === 'sending' && 'Sending…'}
+          </button>
+          {/* Daily's own call frame already renders its own mute/camera
+              controls inside the video iframe (Prebuilt UI, not something we
+              draw ourselves) — chat is the one custom control that belongs
+              in this bar alongside "I'm lost". */}
+          <button
+            type="button"
+            className="btn-pill lesson-chat-toggle"
+            onClick={() => setIsChatOpen((current) => !current)}
+            aria-pressed={isChatOpen}
+          >
+            <MessageSquare size={18} aria-hidden="true" />
+            Chat
           </button>
         </div>
       )}
